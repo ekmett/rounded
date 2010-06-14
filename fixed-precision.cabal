@@ -1,11 +1,11 @@
 Name:              fixed-precision
-Version:           0.2.0
+Version:           0.2.0.1
 Synopsis:          Fixed Precision Arithmetic
 Description:
     Numeric instances for MPFR that use the \"Implicit Configurations\" from 
     <http://www.cs.rutgers.edu/~ccshan/prepose/prepose.pdf>
     to choose 'Rounding' and 'Precision'.
-Homepage:          http://patch-tag.com/r/ekmett/fixed-precision
+Homepage:          http://github.com/ekmett/fixed-precision
 License:           BSD3
 License-file:      LICENSE
 Author:            Edward Kmett
