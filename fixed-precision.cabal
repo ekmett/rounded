@@ -1,0 +1,25 @@
+Name:              fixed-precision
+Version:           0.2.0
+Synopsis:          Fixed Precision Arithmetic
+Description:
+    Numeric instances for MPFR that use the \"Implicit Configurations\" from 
+    <http://www.cs.rutgers.edu/~ccshan/prepose/prepose.pdf>
+    to choose 'Rounding' and 'Precision'.
+Homepage:          http://patch-tag.com/r/ekmett/fixed-precision
+License:           BSD3
+License-file:      LICENSE
+Author:            Edward Kmett
+Maintainer:        ekmett@gmail.com
+Category:          Math
+Build-type:        Simple
+Cabal-version:     >=1.6
+
+Library
+  Exposed-modules: Numeric.Precision.Fixed
+  Build-depends:   base >= 4 && < 5,
+                   reflection >= 0.3.0 && < 0.4,
+                   hmpfr >= 0.3.1 && < 0.4,
+                   integer-gmp >= 0.2.0 && < 0.3,
+                   tagged >= 0.0 && < 0.1
+  GHC-Options:     -Wall
+    
