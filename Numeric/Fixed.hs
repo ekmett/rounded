@@ -64,22 +64,13 @@ instance Rounding Up where
 instance Rounding Down where
     rounding = Tagged Down
 
-data ReifiedRounding s
-
-retagReifiedRounding :: Tagged s a -> Tagged (ReifiedRounding s) a
-retagReifiedRounding = retag
-{-# INLINE retagReifiedRounding #-}
-
-instance Reifies s RoundMode => Rounding (ReifiedRounding s) where
-    rounding = retagReifiedRounding reflect
-
-reifyRounding :: RoundMode -> (forall r. Rounding r => Tagged r a) -> a
-reifyRounding m t = reify m (retagRounding t)
+reifyRounding :: RoundMode -> (forall r. Rounding r => r -> a) -> a
+reifyRounding Down f = f (undefined :: Down)
+reifyRounding M.Up   f = f (undefined :: Up)
+reifyRounding M.Near f = f (undefined :: Near)
+reifyRounding M.Zero f = f (undefined :: Zero)
+reifyRounding _ _ = error "reifyRounding: Unexpected rounding mode"
 {-# INLINE reifyRounding #-}
-
-retagRounding :: Tagged (ReifiedRounding s) a -> Tagged s a 
-retagRounding = retag
-{-# INLINE retagRounding #-}
 
 class Precision p where
     precision :: Tagged p M.Precision
@@ -136,13 +127,12 @@ retagReifiedPrecision = retag
 instance ReifiesNum s => Precision (ReifiedPrecision s) where
     precision = retagReifiedPrecision reflectNum
 
-reifyPrecision :: Int -> (forall p. Precision p => Tagged p a) -> a
-reifyPrecision m t = reifyIntegral m (retagPrecision t)
+reifyPrecision :: Int -> (forall p. Precision p => p -> a) -> a
+reifyPrecision m f = reifyIntegral m (go f)
+    where
+        go :: ReifiesNum p => (ReifiedPrecision p -> a) -> Tagged (p) a 
+        go g = Tagged (g undefined)
 {-# INLINE reifyPrecision #-}
-
-retagPrecision :: Tagged (ReifiedPrecision s) a -> Tagged s a 
-retagPrecision = retag
-{-# INLINE retagPrecision #-}
 
 floatPrecision :: RealFloat a => Tagged a M.Precision
 floatPrecision = r

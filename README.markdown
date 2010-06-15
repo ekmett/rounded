@@ -8,9 +8,17 @@ Phantom types carry the information about the precision and rounding mode.
 Usage
 -----
 
-    sin pi :: Fixed Down Double  -- use a 53 bit mantissa, and round down intermediate results
-    pi :: Fixed Near $(bits 256) -- use a 256 bit mantissa, and round intermediate results to the nearest value
-    withPrecision 256 (exp pi)   -- compute using a precision that is specified at runtime.
+Use a 53 bit mantissa (the same size as used by a Double), and round down intermediate results:
+
+    sin pi :: Fixed Down Double
+
+Use a 256 bit mantissa, and round intermediate results to the nearest value:
+
+    pi :: Fixed Near $(bits 256)
+
+Specify a mantissa size at runtime:
+
+    reifyPrecision 512 (\(p::p) -> show (logBase 10 2 :: Fixed Near p)) 
 
 Contact Information
 -------------------
