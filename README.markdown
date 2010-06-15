@@ -25,6 +25,6 @@ Contact Information
 
 Please, feel free to contact me with questions, concerns, or bug fixes.
 
-I can be reached via github or on the #haskell IRC channel on irc.freenode.net.
+I can be reached as ekmett via github or as edwardk on the #haskell IRC channel on irc.freenode.net.
 
 -Edward Kmett
