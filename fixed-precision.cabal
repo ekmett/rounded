@@ -1,5 +1,5 @@
 Name:              fixed-precision
-Version:           0.2.0.1
+Version:           0.3.0
 Synopsis:          Fixed Precision Arithmetic
 Description:
     Numeric instances for MPFR that use the \"Implicit Configurations\" from 
