@@ -40,6 +40,9 @@ import Language.Haskell.TH hiding (reify)
 
 newtype Fixed r p = Fixed MPFR deriving (Eq,Ord)
 
+{-# RULES
+"realToFrac/Fixed->Fixed" realToFrac = \(Fixed x) -> Fixed x
+  #-}
 
 data Near
 data Zero
@@ -65,15 +68,18 @@ data ReifiedRounding s
 
 retagReifiedRounding :: Tagged s a -> Tagged (ReifiedRounding s) a
 retagReifiedRounding = retag
+{-# INLINE retagReifiedRounding #-}
 
 instance Reifies s RoundMode => Rounding (ReifiedRounding s) where
     rounding = retagReifiedRounding reflect
 
 reifyRounding :: RoundMode -> (forall r. Rounding r => Tagged r a) -> a
 reifyRounding m t = reify m (retagRounding t)
+{-# INLINE reifyRounding #-}
 
 retagRounding :: Tagged (ReifiedRounding s) a -> Tagged s a 
 retagRounding = retag
+{-# INLINE retagRounding #-}
 
 class Precision p where
     precision :: Tagged p M.Precision
@@ -125,15 +131,18 @@ data ReifiedPrecision s
 
 retagReifiedPrecision :: Tagged s a -> Tagged (ReifiedPrecision s) a
 retagReifiedPrecision = retag
+{-# INLINE retagReifiedPrecision #-}
 
 instance ReifiesNum s => Precision (ReifiedPrecision s) where
     precision = retagReifiedPrecision reflectNum
 
 reifyPrecision :: Int -> (forall p. Precision p => Tagged p a) -> a
 reifyPrecision m t = reifyIntegral m (retagPrecision t)
+{-# INLINE reifyPrecision #-}
 
 retagPrecision :: Tagged (ReifiedPrecision s) a -> Tagged s a 
 retagPrecision = retag
+{-# INLINE retagPrecision #-}
 
 floatPrecision :: RealFloat a => Tagged a M.Precision
 floatPrecision = r
@@ -141,12 +150,15 @@ floatPrecision = r
         r = Tagged (fromIntegral (floatDigits (undefined `asArg1Of` r)))
         asArg1Of :: a -> f a b -> a 
         asArg1Of = const
+{-# INLINE floatPrecision #-}
 
 untagRounding :: Tagged r a -> Fixed r p -> a
 untagRounding (Tagged t) _ = t
+{-# INLINE untagRounding #-}
 
 untagPrecision :: Tagged p a -> Fixed r p -> a 
 untagPrecision (Tagged t) _ = t
+{-# INLINE untagPrecision #-}
 
 instance (Rounding r, Precision p) => Show (Fixed r p) where
     show fp = toStringExp decimals fp
@@ -192,9 +204,11 @@ toStringExp dec fp@(Fixed d)
 
 reflectRounding :: Rounding r => Fixed r p -> RoundMode
 reflectRounding = untagRounding rounding
+{-# INLINE reflectRounding #-}
 
 reflectPrecision :: Precision p => Fixed r p -> M.Precision
 reflectPrecision = untagPrecision precision
+{-# INLINE reflectPrecision #-}
 
 liftFrom :: 
     ( Rounding r
@@ -202,19 +216,24 @@ liftFrom ::
     ) => 
     (RoundMode -> M.Precision -> a -> MPFR) -> 
     a -> Fixed r p 
-liftFrom f a = r where r= Fixed $ f (reflectRounding r) (reflectPrecision r) a 
+liftFrom f a = r where r = Fixed $ f (reflectRounding r) (reflectPrecision r) a 
+{-# INLINE liftFrom #-}
 
 fromMPFR :: (Rounding r, Precision p) => MPFR -> Fixed r p 
 fromMPFR = liftFrom M.set
+{-# INLINE fromMPFR #-}
 
 fromInt :: (Rounding r, Precision p) => Int -> Fixed r p 
 fromInt = liftFrom M.fromInt
+{-# INLINE fromInt #-}
 
 fromWord :: (Rounding r, Precision p) => Word -> Fixed r p 
 fromWord = liftFrom M.fromWord
+{-# INLINE fromWord #-}
 
 fromDouble :: (Rounding r, Precision p) => Double -> Fixed r p 
 fromDouble = liftFrom M.fromDouble
+{-# INLINE fromDouble #-}
 
 posInfinity :: (Rounding r, Precision p) => Fixed r p
 posInfinity = liftFrom (const M.setInf) 1
@@ -232,6 +251,7 @@ lift0 ::
     (RoundMode -> M.Precision -> MPFR) -> 
     Fixed r p
 lift0 f = r where r = Fixed $ f (reflectRounding r) (reflectPrecision r)
+{-# INLINE lift0 #-}
 
 lift1 :: 
     ( Rounding r
@@ -240,6 +260,7 @@ lift1 ::
     (RoundMode -> M.Precision -> MPFR -> MPFR) -> 
     Fixed r p -> Fixed r p
 lift1 f i@(Fixed a) = Fixed $ f (reflectRounding i) (reflectPrecision i) a
+{-# INLINE lift1 #-}
 
 lift2 :: 
     ( Rounding r
@@ -248,30 +269,39 @@ lift2 ::
     (RoundMode -> M.Precision -> MPFR -> MPFR -> MPFR) -> 
     Fixed r p -> Fixed r p -> Fixed r p
 lift2 f i@(Fixed a) (Fixed b) = Fixed $ f (reflectRounding i) (reflectPrecision i) a b
+{-# INLINE lift2 #-}
 
 toZero :: Precision p => Fixed r p -> Fixed Zero p
 toZero (Fixed a) = Fixed a
+{-# INLINE toZero #-}
 
 toUp :: Precision p => Fixed r p -> Fixed Up p
 toUp (Fixed a) = Fixed a
+{-# INLINE toUp #-}
 
 toDown :: Precision p => Fixed r p -> Fixed Down p
 toDown (Fixed a) = Fixed a
+{-# INLINE toDown #-}
 
 toNear :: Precision p => Fixed r p -> Fixed Near p
 toNear (Fixed a) = Fixed a
+{-# INLINE toNear #-}
 
 fromZero :: Precision p => Fixed Zero p -> Fixed r p
 fromZero (Fixed a) = Fixed a
+{-# INLINE fromZero #-}
 
 fromUp :: Precision p => Fixed Up p -> Fixed r p
 fromUp (Fixed a) = Fixed a
+{-# INLINE fromUp #-}
 
 fromDown :: Precision p => Fixed Down p -> Fixed r p
 fromDown (Fixed a) = Fixed a
+{-# INLINE fromDown #-}
 
 fromNear :: Precision p => Fixed Near p -> Fixed r p
 fromNear (Fixed a) = Fixed a
+{-# INLINE fromNear #-}
 
 instance (Rounding r, Precision p) => Num (Fixed r p) where
     (+)    = lift2 M.add

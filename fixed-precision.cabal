@@ -4,7 +4,13 @@ Synopsis:          Fixed Precision Arithmetic
 Description:
     Numeric instances for MPFR that use the \"Implicit Configurations\" from 
     <http://www.cs.rutgers.edu/~ccshan/prepose/prepose.pdf>
-    to choose 'Rounding' and 'Precision'.
+    to choose a 'Rounding' and 'Precision'. For those that do not want to
+    use reflection, explicit instances are provided for common precisions
+    and for the built-in rounding modes.
+    .
+    > sin pi :: Fixed Down Double
+    > fixed Near 256 (sin pi)
+    
 Homepage:          http://github.com/ekmett/fixed-precision
 License:           BSD3
 License-file:      LICENSE
@@ -15,11 +21,12 @@ Build-type:        Simple
 Cabal-version:     >=1.6
 
 Library
-  Exposed-modules: Numeric.Precision.Fixed
+  Exposed-modules: Numeric.Fixed
   Build-depends:   base >= 4 && < 5,
                    reflection >= 0.3.0 && < 0.4,
                    hmpfr >= 0.3.1 && < 0.4,
                    integer-gmp >= 0.2.0 && < 0.3,
-                   tagged >= 0.0 && < 0.1
+                   tagged >= 0.0 && < 0.1,
+                   template-haskell >= 2.4.0 && < 2.5
   GHC-Options:     -Wall
     
