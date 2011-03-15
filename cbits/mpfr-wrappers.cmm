@@ -1,0 +1,83 @@
+#include "Cmm.h"
+#include "MpfrDerivedConstants.h"
+
+/*
+#define SIZEOF___mpfr_struct 32
+#define OFFSET___mpfr_struct__mpfr_prec 0
+#define REP___mpfr_struct__mpfr_prec b64
+#define __mpfr_struct__mpfr_prec(__ptr__)  REP___mpfr_struct__mpfr_prec[__ptr__+OFFSET___mpfr_struct__mpfr_prec]
+#define OFFSET___mpfr_struct__mpfr_sign 8
+#define REP___mpfr_struct__mpfr_sign b32
+#define __mpfr_struct__mpfr_sign(__ptr__)  REP___mpfr_struct__mpfr_sign[__ptr__+OFFSET___mpfr_struct__mpfr_sign]
+#define OFFSET___mpfr_struct__mpfr_exp 16
+#define REP___mpfr_struct__mpfr_exp b64
+#define __mpfr_struct__mpfr_exp(__ptr__)  REP___mpfr_struct__mpfr_exp[__ptr__+OFFSET___mpfr_struct__mpfr_exp]
+#define OFFSET___mpfr_struct__mpfr_d 24
+#define REP___mpfr_struct__mpfr_d b64
+#define __mpfr_struct__mpfr_d(__ptr__)  REP___mpfr_struct__mpfr_d[__ptr__+OFFSET___mpfr_struct__mpfr_d]
+*/
+
+import "fixed-precision" mpfr_init2;
+import "fixed-precision" mpfr_set_d;
+import "fixed-precision" mpfr_get_d;
+import "fixed-precision" mpfr_custom_get_size;
+
+fixed_cmm_double2Fixedzh
+{
+   /* arguments: R1 = rounding, R2 = precision, D1 = double */
+  W_ r;
+  W_ mpfr_tmp;
+
+  STK_CHK_GEN(1 * SIZEOF___mpfr_struct, NO_PTRS, fixed_cmm_double2Fixedzh);
+
+  mpfr_tmp = Sp - 1 * SIZEOF___mpfr_struct;
+
+  foreign "C" memset(mpfr_tmp, 0, SIZEOF___mpfr_struct);
+  (r) = foreign "C" mpfr_init2(mpfr_tmp "ptr", R2) [];
+  (r) = foreign "C" mpfr_set_d(mpfr_tmp "ptr", D1, R1) [];
+
+  RET_NNNP(
+    __mpfr_struct__mpfr_prec(mpfr_tmp), 
+    __mpfr_struct__mpfr_sign(mpfr_tmp),
+    __mpfr_struct__mpfr_exp(mpfr_tmp),
+    __mpfr_struct__mpfr_d(mpfr_tmp) - SIZEOF_StgArrWords);
+}
+
+fixed_cmm_fixed2Doublezh
+{
+  /* args: rounding, prec, sign, exp, byteArray# */
+  
+  D_ r;
+  W_ mpfr_tmp;
+
+  MAYBE_GC(R5_PTR, fixed_cmm_fixed2Doublezh);
+
+  STK_CHK_GEN(1 * SIZEOF___mpfr_struct, R5_PTR, fixed_cmm_fixed2Doublezh);
+
+  mpfr_tmp = Sp - 1 * SIZEOF___mpfr_struct;
+
+  foreign "C" memset(mpfr_tmp, 0, SIZEOF___mpfr_struct);
+  __mpfr_struct__mpfr_prec(mpfr_tmp) = R2;
+  __mpfr_struct__mpfr_sign(mpfr_tmp) = R3;
+  __mpfr_struct__mpfr_exp(mpfr_tmp) = R4;
+  __mpfr_struct__mpfr_d(mpfr_tmp) = BYTE_ARR_CTS(R5_PTR);
+
+  (r) = foreign "C" mpfr_get_d(mpfr_tmp, R1);
+  D1 = r;
+  jump %ENTRY_CODE(Sp(0));
+}
+
+/* arguments: R1 = rounding, R2 = prec, R3 = sign, R4 = exp, R5 = byteArray# 
+fixed_cmm_fixed2Integerzh
+{
+  W mpz_tmp;
+  W mpfr_tmp;
+
+  MAYBE_GC(R5_PTR, fixed_cmm_fixed2Integerzh)
+  STK_CHK_GEN(1 * SIZEOF___mpfr_struct + 1 * SIZEOF_MP_INT, R5_PTR, fixed_cmm_fixed2Integerzh)
+  Sp - 1 * SIZEOF___mpfr_struct;
+  
+  __gmpz_init(
+  
+}
+*/

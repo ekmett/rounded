@@ -38,109 +38,14 @@ import Data.Number.MPFR (RoundMode(..), MPFR)
 import qualified Data.Number.MPFR as M
 import Language.Haskell.TH hiding (reify)
 
+{-
+
 newtype Fixed r p = Fixed MPFR deriving (Eq,Ord)
+
 
 {-# RULES
 "realToFrac/Fixed->Fixed" realToFrac = \(Fixed x) -> Fixed x
   #-}
-
-data Near
-data Zero
-data Up
-data Down
-
-class Rounding r where
-    rounding :: Tagged r RoundMode
-
-instance Rounding Near where
-    rounding = Tagged Near
-
-instance Rounding Zero where
-    rounding = Tagged Zero
-
-instance Rounding Up where
-    rounding = Tagged Up
-
-instance Rounding Down where
-    rounding = Tagged Down
-
-reifyRounding :: RoundMode -> (forall r. Rounding r => r -> a) -> a
-reifyRounding Down f = f (undefined :: Down)
-reifyRounding M.Up   f = f (undefined :: Up)
-reifyRounding M.Near f = f (undefined :: Near)
-reifyRounding M.Zero f = f (undefined :: Zero)
-reifyRounding _ _ = error "reifyRounding: Unexpected rounding mode"
-{-# INLINE reifyRounding #-}
-
-class Precision p where
-    precision :: Tagged p M.Precision
-
-instance Precision Float where
-    precision = floatPrecision
-
-instance Precision CFloat where
-    precision = floatPrecision
-
-instance Precision Double where
-    precision = floatPrecision
-
-instance Precision CDouble where
-    precision = floatPrecision
-
-data PrecZero
-instance Precision PrecZero where
-    precision = Tagged 0
-
-data PrecSucc a
-
-retagSucc :: Tagged n a -> Tagged (PrecSucc n) a
-retagSucc = retag
-
-instance Precision n => Precision (PrecSucc n) where
-    precision = (1+) <$> retagSucc precision 
-
-data PrecDouble a
-
-retagDouble :: Tagged n a -> Tagged (PrecDouble n) a
-retagDouble = retag
-
-instance Precision n => Precision (PrecDouble n) where
-    precision = (2*) <$> retagDouble precision 
-
-bits :: Int -> Q Type
-bits 0 = conT ''PrecZero
-bits n = case divMod n 2 of
-        (q,0) -> conT ''PrecDouble `appT` bits q
-        (0,1) -> conT ''PrecSucc `appT` conT ''PrecZero
-        (q,1) -> conT ''PrecSucc `appT` (conT ''PrecDouble `appT` bits q)
-        (_,_) -> error "bits: negative"
-
-bytes :: Int -> Q Type
-bytes = bits . (*8)
-
-data ReifiedPrecision s
-
-retagReifiedPrecision :: Tagged s a -> Tagged (ReifiedPrecision s) a
-retagReifiedPrecision = retag
-{-# INLINE retagReifiedPrecision #-}
-
-instance ReifiesNum s => Precision (ReifiedPrecision s) where
-    precision = retagReifiedPrecision reflectNum
-
-reifyPrecision :: Int -> (forall p. Precision p => p -> a) -> a
-reifyPrecision m f = reifyIntegral m (go f)
-    where
-        go :: ReifiesNum p => (ReifiedPrecision p -> a) -> Tagged (p) a 
-        go g = Tagged (g undefined)
-{-# INLINE reifyPrecision #-}
-
-floatPrecision :: RealFloat a => Tagged a M.Precision
-floatPrecision = r
-    where 
-        r = Tagged (fromIntegral (floatDigits (undefined `asArg1Of` r)))
-        asArg1Of :: a -> f a b -> a 
-        asArg1Of = const
-{-# INLINE floatPrecision #-}
 
 untagRounding :: Tagged r a -> Fixed r p -> a
 untagRounding (Tagged t) _ = t
@@ -342,7 +247,6 @@ instance (Rounding r, Precision p) => RealFrac (Fixed r p) where
               n = quot m e
               f = M.frac Down (M.getPrec d) d
 
-{-
 instance (Rounding r, Precision p) => RealFloat (Fixed r p) where
     floatRadix _ = 2
     floatRange _ = (minBound, maxBound)
