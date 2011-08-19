@@ -1,7 +1,7 @@
-fixed-precision
+precision
 ===============
 
-Provides a light-weight interface to Ales Bisjak's hmpfr bindings to MPFR for Haskell.
+Provides a light-weight interface to MPFR for Haskell
 
 Phantom types carry the information about the precision and rounding mode.
 
@@ -10,15 +10,15 @@ Usage
 
 Use a 53 bit mantissa (the same size as used by a Double), and round down intermediate results:
 
-    sin pi :: Fixed Down Double
+    sin pi :: Rounded TowardZero Double
 
 Use a 256 bit mantissa, and round intermediate results to the nearest value:
 
-    pi :: Fixed Near $(bits 256)
+    pi :: Rounded TowardNearest $(bits 256)
 
 Specify a mantissa size at runtime:
 
-    reifyPrecision 512 (\(p::p) -> show (logBase 10 2 :: Fixed Near p)) 
+    reifyPrecision 512 (\(p::p) -> show (logBase 10 2 :: Rounded TowardNearest p)) 
 
 Contact Information
 -------------------

@@ -12,6 +12,7 @@
  * ------------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <gmp.h>
 #include <mpfr.h>
 
 #define str(a,b) #a "_" #b
@@ -56,17 +57,23 @@
     field_type(s_type, field);      \
     struct_field_macro(str(s_type,field))
 
+typedef __mpfr_struct MPFR;
 
 int
 main(int argc, char *argv[])
 {
     printf("/* This file is created automatically.  Do not edit by hand.*/\n\n");
 
-    struct_size(__mpfr_struct);
-    struct_field(__mpfr_struct,_mpfr_prec);
-    struct_field(__mpfr_struct,_mpfr_sign);
-    struct_field(__mpfr_struct,_mpfr_exp);
-    struct_field(__mpfr_struct,_mpfr_d);
+    struct_size(MP_INT);
+    struct_field(MP_INT,_mp_alloc);
+    struct_field(MP_INT,_mp_size);
+    struct_field(MP_INT,_mp_d);
 
+    struct_size(MPFR);
+    struct_field(MPFR,_mpfr_prec);
+    struct_field(MPFR,_mpfr_sign);
+    struct_field(MPFR,_mpfr_exp);
+    struct_field(MPFR,_mpfr_d);
+    printf("#define PREC_SHIFT %d\n", (int)(sizeof(mpfr_prec_t)*8-1));
     return 0;
 }

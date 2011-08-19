@@ -1,83 +1,113 @@
 #include "Cmm.h"
 #include "MpfrDerivedConstants.h"
 
-/*
-#define SIZEOF___mpfr_struct 32
-#define OFFSET___mpfr_struct__mpfr_prec 0
-#define REP___mpfr_struct__mpfr_prec b64
-#define __mpfr_struct__mpfr_prec(__ptr__)  REP___mpfr_struct__mpfr_prec[__ptr__+OFFSET___mpfr_struct__mpfr_prec]
-#define OFFSET___mpfr_struct__mpfr_sign 8
-#define REP___mpfr_struct__mpfr_sign b32
-#define __mpfr_struct__mpfr_sign(__ptr__)  REP___mpfr_struct__mpfr_sign[__ptr__+OFFSET___mpfr_struct__mpfr_sign]
-#define OFFSET___mpfr_struct__mpfr_exp 16
-#define REP___mpfr_struct__mpfr_exp b64
-#define __mpfr_struct__mpfr_exp(__ptr__)  REP___mpfr_struct__mpfr_exp[__ptr__+OFFSET___mpfr_struct__mpfr_exp]
-#define OFFSET___mpfr_struct__mpfr_d 24
-#define REP___mpfr_struct__mpfr_d b64
-#define __mpfr_struct__mpfr_d(__ptr__)  REP___mpfr_struct__mpfr_d[__ptr__+OFFSET___mpfr_struct__mpfr_d]
-*/
+import "precision" mpfr_init2;
+import "precision" mpfr_set_d;
+import "precision" mpfr_set_si;
+import "precision" mpfr_get_d;
+import "precision" mpfr_add;
 
-import "fixed-precision" mpfr_init2;
-import "fixed-precision" mpfr_set_d;
-import "fixed-precision" mpfr_get_d;
-import "fixed-precision" mpfr_custom_get_size;
-
-fixed_cmm_double2Fixedzh
+mpfr_cmm_init_si
 {
-   /* arguments: R1 = rounding, R2 = precision, D1 = double */
-  W_ r;
-  W_ mpfr_tmp;
+  /* arguments: R1 = precision, R2 = int */
+  W_ prec, i;
+  W_ mpfr;
+  
+  prec = R1;
+  i = R2;
+  
+  STK_CHK_GEN(SIZEOF_MPFR, NO_PTRS, mpfr_cmm_init_si);
 
-  STK_CHK_GEN(1 * SIZEOF___mpfr_struct, NO_PTRS, fixed_cmm_double2Fixedzh);
+  mpfr = Sp - 1 * SIZEOF_MPFR;
 
-  mpfr_tmp = Sp - 1 * SIZEOF___mpfr_struct;
+  foreign "C" mpfr_init2(mpfr, prec);
+  foreign "C" mpfr_set_si(mpfr, i, 0);
 
-  foreign "C" memset(mpfr_tmp, 0, SIZEOF___mpfr_struct);
-  (r) = foreign "C" mpfr_init2(mpfr_tmp "ptr", R2) [];
-  (r) = foreign "C" mpfr_set_d(mpfr_tmp "ptr", D1, R1) [];
-
-  RET_NNNP(
-    __mpfr_struct__mpfr_prec(mpfr_tmp), 
-    __mpfr_struct__mpfr_sign(mpfr_tmp),
-    __mpfr_struct__mpfr_exp(mpfr_tmp),
-    __mpfr_struct__mpfr_d(mpfr_tmp) - SIZEOF_StgArrWords);
+  RET_NNP(MPFR__mpfr_prec(mpfr) * MPFR__mpfr_sign(mpfr), MPFR__mpfr_exp(mpfr), MPFR__mpfr_d(mpfr));
 }
 
-fixed_cmm_fixed2Doublezh
+mpfr_cmm_init_d
 {
-  /* args: rounding, prec, sign, exp, byteArray# */
+  /* arguments: R1 = rounding, R2 = precision
+                D1 = double */
+  W_ rnd, prec, mpfr;
+  D_ dbl;
+
+  rnd = R1;
+  prec = R2;
+  dbl = D1;
+
+  STK_CHK_GEN(SIZEOF_MPFR, NO_PTRS, mpfr_cmm_init_d);
+
+  mpfr = Sp - 1 * SIZEOF_MPFR;
+
+  foreign "C" mpfr_init2(mpfr, prec) [];
+  foreign "C" mpfr_set_d(mpfr, dbl, rnd) [];
+
+  RET_NNP(
+    MPFR__mpfr_prec(mpfr) * MPFR__mpfr_sign(mpfr),
+    MPFR__mpfr_exp(mpfr),
+    MPFR__mpfr_d(mpfr));
+}
+
+mpfr_cmm_get_d
+{
+  // arguments: R1 = rounding mode, R2 = prec * sign, R3 = exp, R4 = limbs 
+  D_ ret;
+  W_ rnd, mpfr;
+  W_ sv;
   
-  D_ r;
-  W_ mpfr_tmp;
+  rnd = R1;
 
-  MAYBE_GC(R5_PTR, fixed_cmm_fixed2Doublezh);
+  MAYBE_GC(R4_PTR, mpfr_cmm_get_d);
+  
+  STK_CHK_GEN(SIZEOF_MPFR, R4_PTR, mpfr_cmm_get_d);
 
-  STK_CHK_GEN(1 * SIZEOF___mpfr_struct, R5_PTR, fixed_cmm_fixed2Doublezh);
-
-  mpfr_tmp = Sp - 1 * SIZEOF___mpfr_struct;
-
-  foreign "C" memset(mpfr_tmp, 0, SIZEOF___mpfr_struct);
-  __mpfr_struct__mpfr_prec(mpfr_tmp) = R2;
-  __mpfr_struct__mpfr_sign(mpfr_tmp) = R3;
-  __mpfr_struct__mpfr_exp(mpfr_tmp) = R4;
-  __mpfr_struct__mpfr_d(mpfr_tmp) = BYTE_ARR_CTS(R5_PTR);
-
-  (r) = foreign "C" mpfr_get_d(mpfr_tmp, R1);
-  D1 = r;
+  sv = R2 >> PREC_SHIFT;
+  
+  mpfr = Sp - 1 * SIZEOF_MPFR;
+  
+  MPFR__mpfr_prec(mpfr) = (R2 + sv) ^ sv;
+  MPFR__mpfr_sign(mpfr) = 1 | sv;
+  MPFR__mpfr_exp(mpfr) = R4;
+  MPFR__mpfr_d(mpfr) = R5;
+  
+  (ret) = foreign "C" mpfr_get_d(mpfr, rnd);
+  D1 = ret;
   jump %ENTRY_CODE(Sp(0));
 }
 
-/* arguments: R1 = rounding, R2 = prec, R3 = sign, R4 = exp, R5 = byteArray# 
-fixed_cmm_fixed2Integerzh
+mpfr_cmm_add
 {
-  W mpz_tmp;
-  W mpfr_tmp;
+  // arguments: R1 = rounding mode R2 = prec1 * sign1, R3 = exp1, R4 = limbs1 R5 = prec2 * sign2, R6 = exp2, R7 = limbs2
+  W_ rnd, op1, op2, ret, s1, s2, prec, ps3;
 
-  MAYBE_GC(R5_PTR, fixed_cmm_fixed2Integerzh)
-  STK_CHK_GEN(1 * SIZEOF___mpfr_struct + 1 * SIZEOF_MP_INT, R5_PTR, fixed_cmm_fixed2Integerzh)
-  Sp - 1 * SIZEOF___mpfr_struct;
+  rnd = R1;
+  prec = (R5 + s2) ^ s2;
+
+  MAYBE_GC(R4_PTR & R7_PTR, mpfr_cmm_add);
+
+  STK_CHK_GEN(3 * SIZEOF_MPFR, R4_PTR & R7_PTR, mpfr_cmm_add);
+
+  s1 = R2 >> PREC_SHIFT;
+  s2 = R5 >> PREC_SHIFT;
+
+  op1 = Sp - 1 * SIZEOF_MPFR;
+  op2 = Sp - 2 * SIZEOF_MPFR;
+  ret = Sp - 3 * SIZEOF_MPFR;
   
-  __gmpz_init(
+  MPFR__mpfr_prec(op1) = (R2 + s1) ^ s1;
+  MPFR__mpfr_sign(op1) = 1 | s1;
+  MPFR__mpfr_exp(op1) = R3;
+  MPFR__mpfr_d(op1) = R4;
   
+  MPFR__mpfr_prec(op2) = prec;
+  MPFR__mpfr_sign(op2) = 1 | s2;
+  MPFR__mpfr_exp(op2) = R6;
+  MPFR__mpfr_d(op2) = R7;
+  
+  foreign "C" mpfr_init(ret, prec);
+  foreign "C" mpfr_add(ret, op1, op2, rnd);
+
+  RET_NNP(MPFR__mpfr_prec(ret) * MPFR__mpfr_sign(ret), MPFR__mpfr_exp(ret), MPFR__mpfr_d(ret));
 }
-*/

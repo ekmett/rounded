@@ -1,0 +1,54 @@
+name:               precision
+version:            0.0.1
+synopsis:           Correctly-rounded arbitrary-precision floating point numbers using MPFR
+homepage:           http://github.com/ekmett/rounded
+license:            BSD3
+license-file:       LICENSE
+author:             Edward Kmett
+maintainer:         ekmett@gmail.com
+category:           Numeric, Math
+build-type:         Custom
+cabal-version:      >= 1.6
+extra-source-files: cbits/mkMpfrDerivedConstants.c
+description:
+    Numeric instances for MPFR that use the \"Implicit Configurations\" from 
+    <http://www.cs.rutgers.edu/~ccshan/prepose/prepose.pdf>
+    to choose a 'Rounding' and 'Precision'. For those that do not want to
+    use reflection, explicit instances are provided for common precisions
+    and for the built-in rounding modes.
+    .
+    > sin pi :: Rounded TowardZero Double
+    > rounded TowardZero 256 (sin pi)
+    
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/rounded.git
+
+library
+  exposed-modules: 
+    Numeric.Rounded
+
+  other-modules:
+    Numeric.Rounding
+    Numeric.Precision
+
+  build-depends:   
+    base             >= 4     && < 5,
+    reflection       >= 0.5   && < 0.6,
+    integer-gmp      >= 0.2   && < 0.3,
+    ghc-prim,
+    tagged           >= 0.2.3 && < 0.3,
+    template-haskell >= 2.4   && < 2.7
+
+  ghc-options: -Wall
+
+  c-sources:       
+    cbits/mpfr-wrappers.cmm
+
+  include-dirs: dist/include /opt/local/include
+
+  extra-libraries: mpfr
+
+  extra-lib-dirs: /opt/local/lib
+
