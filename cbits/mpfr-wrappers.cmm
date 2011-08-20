@@ -69,8 +69,8 @@ mpfr_cmm_get_d
   
   MPFR__mpfr_prec(mpfr) = (R2 + sv) ^ sv;
   MPFR__mpfr_sign(mpfr) = 1 | sv;
-  MPFR__mpfr_exp(mpfr) = R4;
-  MPFR__mpfr_d(mpfr) = R5;
+  MPFR__mpfr_exp(mpfr) = R3;
+  MPFR__mpfr_d(mpfr) = R4;
   
   (ret) = foreign "C" mpfr_get_d(mpfr, rnd);
   D1 = ret;
