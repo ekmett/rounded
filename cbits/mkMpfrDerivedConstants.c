@@ -58,6 +58,7 @@
     struct_field_macro(str(s_type,field))
 
 typedef __mpfr_struct MPFR;
+typedef union { mp_size_t s; mp_limb_t l; } MPFR_SIZE_LIMB;
 
 int
 main(int argc, char *argv[])
@@ -74,6 +75,9 @@ main(int argc, char *argv[])
     struct_field(MPFR,_mpfr_sign);
     struct_field(MPFR,_mpfr_exp);
     struct_field(MPFR,_mpfr_d);
+    struct_size(MPFR_SIZE_LIMB);
     printf("#define PREC_SHIFT %d\n", (int)(sizeof(mpfr_prec_t)*8-1));
+    printf("#define MPFR_MANGLE_PTR(x) (x + SIZEOF_MPFR_SIZE_LIMB)\n");
+    printf("#define MPFR_UNMANGLE_PTR(x) (x - SIZEOF_MPFR_SIZE_LIMB)\n");
     return 0;
 }

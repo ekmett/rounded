@@ -76,11 +76,11 @@ instance Eq (Rounded r p)
 instance (Rounding r, Precision p) => Num (Rounded r p) where
   m@(Rounded s e l) + Rounded s' e' l' = case mpfrAdd# (mode# (Proxy::Proxy r)) s e l s' e' l' of
     (# s'', e'', l'' #) -> Rounded s'' e'' l''
-  fromInteger (S# i) = case mpfrFromInt# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) i of
+  fromInteger (S# i) = case mpfrFromInt# (prec# (Proxy::Proxy p)) i of
     (# s, e, l #) -> Rounded s e l
 
 foreign import prim "mpfr_cmm_init_si" mpfrFromInt#
-  :: CRounding# -> CPrecision# -> Int# -> (# CSignPrec#, CExp#, ByteArray# #)
+  :: CPrecision# -> Int# -> (# CSignPrec#, CExp#, ByteArray# #)
 
 proxyRounding :: Rounded r p -> Proxy r
 proxyRounding _ = Proxy
@@ -90,7 +90,7 @@ proxyPrecision _ = Proxy
 
 fromInt :: (Rounding r, Precision p) => Int -> Rounded r p
 fromInt (I# i) = r where 
-  r = case mpfrFromInt# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) i of
+  r = case mpfrFromInt# (prec# (proxyPrecision r)) i of
     (# s, e, l #) -> Rounded s e l
 
 foreign import prim "mpfr_cmm_init_d" mpfrFromDouble#

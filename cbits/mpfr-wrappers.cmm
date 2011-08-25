@@ -15,7 +15,7 @@ mpfr_cmm_init_si
   
   prec = R1;
   i = R2;
-  
+
   STK_CHK_GEN(SIZEOF_MPFR, NO_PTRS, mpfr_cmm_init_si);
 
   mpfr = Sp - 1 * SIZEOF_MPFR;
@@ -23,7 +23,10 @@ mpfr_cmm_init_si
   foreign "C" mpfr_init2(mpfr, prec);
   foreign "C" mpfr_set_si(mpfr, i, 0);
 
-  RET_NNP(MPFR__mpfr_prec(mpfr) * MPFR__mpfr_sign(mpfr), MPFR__mpfr_exp(mpfr), MPFR__mpfr_d(mpfr));
+  RET_NNP(
+    MPFR__mpfr_sign(mpfr) * MPFR__mpfr_prec(mpfr), // N.B: this order of the multiplication is important
+    MPFR__mpfr_exp(mpfr),
+    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
 }
 
 mpfr_cmm_init_d
@@ -45,9 +48,9 @@ mpfr_cmm_init_d
   foreign "C" mpfr_set_d(mpfr, dbl, rnd) [];
 
   RET_NNP(
-    MPFR__mpfr_prec(mpfr) * MPFR__mpfr_sign(mpfr),
+    MPFR__mpfr_sign(mpfr) * MPFR__mpfr_prec(mpfr),
     MPFR__mpfr_exp(mpfr),
-    MPFR__mpfr_d(mpfr));
+    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
 }
 
 mpfr_cmm_get_d
@@ -69,10 +72,11 @@ mpfr_cmm_get_d
   
   MPFR__mpfr_prec(mpfr) = (R2 + sv) ^ sv;
   MPFR__mpfr_sign(mpfr) = 1 | sv;
-  MPFR__mpfr_exp(mpfr) = R4;
-  MPFR__mpfr_d(mpfr) = R5;
-  
+  MPFR__mpfr_exp(mpfr) = R3;
+  MPFR__mpfr_d(mpfr) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R4));
+
   (ret) = foreign "C" mpfr_get_d(mpfr, rnd);
+
   D1 = ret;
   jump %ENTRY_CODE(Sp(0));
 }
@@ -99,15 +103,18 @@ mpfr_cmm_add
   MPFR__mpfr_prec(op1) = (R2 + s1) ^ s1;
   MPFR__mpfr_sign(op1) = 1 | s1;
   MPFR__mpfr_exp(op1) = R3;
-  MPFR__mpfr_d(op1) = R4;
+  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R4));
   
   MPFR__mpfr_prec(op2) = prec;
   MPFR__mpfr_sign(op2) = 1 | s2;
   MPFR__mpfr_exp(op2) = R6;
-  MPFR__mpfr_d(op2) = R7;
+  MPFR__mpfr_d(op2) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R7));
   
   foreign "C" mpfr_init(ret, prec);
   foreign "C" mpfr_add(ret, op1, op2, rnd);
 
-  RET_NNP(MPFR__mpfr_prec(ret) * MPFR__mpfr_sign(ret), MPFR__mpfr_exp(ret), MPFR__mpfr_d(ret));
+  RET_NNP(
+    MPFR__mpfr_sign(ret) * MPFR__mpfr_prec(ret),
+    MPFR__mpfr_exp(ret),
+    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(ret)) - SIZEOF_StgArrWords);
 }
