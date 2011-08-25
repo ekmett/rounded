@@ -30,6 +30,10 @@ module Numeric.Rounded
     , AwayFromZero
     , Faithfully
     , TowardNearestWithTiesAwayFromZero
+    -- * Useful Constants
+    , kLog2
+    , kEuler
+    , kCatalan
     -- ** Random stuff (TODO: sort this out)
     , toString
     ) where
@@ -80,18 +84,18 @@ toString (I# base) (Rounded s e l) =
 instance Rounding r => Show (Rounded r p) where
   showsPrec d (Rounded s e l) = showsPrec d (D# (mpfrGetDouble# (mode# (Proxy::Proxy r)) s e l))
 
-type Binop 
-  = CSignPrec# -> CExp# -> ByteArray# -> 
+type Binary 
+  = CRounding# -> 
+    CSignPrec# -> CExp# -> ByteArray# -> 
     CSignPrec# -> CExp# -> ByteArray# -> 
     (# CSignPrec#, CExp#, ByteArray# #)
 
-foreign import prim "mpfr_cmm_add" mpfrAdd# :: CRounding# -> Binop
-foreign import prim "mpfr_cmm_sub" mpfrSub# :: CRounding# -> Binop
-foreign import prim "mpfr_cmm_mul" mpfrMul# :: CRounding# -> Binop
-foreign import prim "mpfr_cmm_div" mpfrDiv# :: CRounding# -> Binop
-foreign import prim "mpfr_cmm_min" mpfrMin# :: CRounding# -> Binop
-foreign import prim "mpfr_cmm_max" mpfrMax# :: CRounding# -> Binop
-
+foreign import prim "mpfr_cmm_add" mpfrAdd# :: Binary
+foreign import prim "mpfr_cmm_sub" mpfrSub# :: Binary
+foreign import prim "mpfr_cmm_mul" mpfrMul# :: Binary
+foreign import prim "mpfr_cmm_div" mpfrDiv# :: Binary
+foreign import prim "mpfr_cmm_min" mpfrMin# :: Binary
+foreign import prim "mpfr_cmm_max" mpfrMax# :: Binary
 
 type Comparison 
   = CSignPrec# -> CExp# -> ByteArray# -> 
@@ -108,10 +112,11 @@ foreign import prim "mpfr_cmm_greaterequal_p"  mpfrGreaterEqual# :: Comparison
 cmp :: (CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#) -> Rounded r p -> Rounded r p -> Bool
 cmp f (Rounded s e l) (Rounded s' e' l') = I# (f s e l s' e' l') /= 0
 
-bin :: Rounding r => (CRounding# -> Binop) -> Rounded r p -> Rounded r p -> Rounded r p
-bin f (Rounded s e l) (Rounded s' e' l') = r where
+binary :: Rounding r => Binary -> Rounded r p -> Rounded r p -> Rounded r p
+binary f (Rounded s e l) (Rounded s' e' l') = r where
   r = case f (mode# (proxyRounding r)) s e l s' e' l' of
     (# s'', e'', l'' #) -> Rounded s'' e'' l''
+
 
 instance Eq (Rounded r p) where
   (==) = cmp mpfrEqual#
@@ -125,15 +130,15 @@ instance Rounding r => Ord (Rounded r p) where
   (>=) = cmp mpfrGreaterEqual#
   (<) = cmp mpfrLess#
   (>) = cmp mpfrGreater#
-  min = bin mpfrMin#
-  max = bin mpfrMax#
+  min = binary mpfrMin#
+  max = binary mpfrMax#
 
 foreign import prim "mpfr_cmm_sgn" mpfrSgn# :: CSignPrec# -> CExp# -> ByteArray# -> Int#
 
 instance (Rounding r, Precision p) => Num (Rounded r p) where
-  (+) = bin mpfrAdd# 
-  (-) = bin mpfrSub# 
-  (*) = bin mpfrMul#
+  (+) = binary mpfrAdd# 
+  (-) = binary mpfrSub# 
+  (*) = binary mpfrMul#
   fromInteger (S# i) = case mpfrFromInt# (prec# (Proxy::Proxy p)) i of
     (# s, e, l #) -> Rounded s e l
   fromInteger (J# i xs) = case mpfrFromInteger# (prec# (Proxy::Proxy p)) i xs of
@@ -174,7 +179,7 @@ instance (Rounding r, Precision p) => Fractional (Rounded r p) where
       case mpfrFromRational# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) ns# nl# ds# dl# of
         (# s, e, l #) -> Rounded s e l
 
-  (/) = bin mpfrDiv#
+  (/) = binary mpfrDiv#
 
 proxyRounding :: Rounded r p -> Proxy r
 proxyRounding _ = Proxy
@@ -194,3 +199,77 @@ fromDouble :: (Rounding r, Precision p) => Double -> Rounded r p
 fromDouble (D# d) = r where 
   r = case mpfrFromDouble# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) d of
     (# s, e, l #) -> Rounded s e l
+
+type Unary
+  = CRounding# ->
+    CSignPrec# -> CExp# -> ByteArray# -> 
+    (# CSignPrec#, CExp#, ByteArray# #)
+
+foreign import prim "mpfr_cmm_log" mpfrLog# :: Unary
+foreign import prim "mpfr_cmm_exp" mpfrExp# :: Unary
+foreign import prim "mpfr_cmm_sqrt" mpfrSqrt# :: Unary
+foreign import prim "mpfr_cmm_sin" mpfrSin# :: Unary
+foreign import prim "mpfr_cmm_cos" mpfrCos# :: Unary
+foreign import prim "mpfr_cmm_tan" mpfrTan# :: Unary
+foreign import prim "mpfr_cmm_asin" mpfrArcSin# :: Unary
+foreign import prim "mpfr_cmm_acos" mpfrArcCos# :: Unary
+foreign import prim "mpfr_cmm_atan" mpfrArcTan# :: Unary
+foreign import prim "mpfr_cmm_sinh" mpfrSinh# :: Unary
+foreign import prim "mpfr_cmm_cosh" mpfrCosh# :: Unary
+foreign import prim "mpfr_cmm_tanh" mpfrTanh# :: Unary
+foreign import prim "mpfr_cmm_asinh" mpfrArcSinh# :: Unary
+foreign import prim "mpfr_cmm_acosh" mpfrArcCosh# :: Unary
+foreign import prim "mpfr_cmm_atanh" mpfrArcTanh# :: Unary
+
+unary :: Rounding r => Unary -> Rounded r p -> Rounded r p
+unary f (Rounded s e l) = r where
+  r = case f (mode# (proxyRounding r)) s e l of
+    (# s', e', l' #) -> Rounded s' e' l'
+
+type Constant
+  = CRounding# -> CPrecision# -> 
+    (# CSignPrec#, CExp#, ByteArray# #)
+
+foreign import prim "mpfr_cmm_const_pi" mpfrConstPi# :: Constant
+
+constant :: (Rounding r, Precision p) => Constant -> Rounded r p
+constant k = r where
+  r = case k (mode# (proxyRounding r)) (prec# (proxyPrecision r)) of
+      (# s, e, l #) -> Rounded s e l
+
+instance (Rounding r, Precision p) => Floating (Rounded r p) where
+  pi = constant mpfrConstPi#
+  exp = unary mpfrExp#
+  sqrt = unary mpfrSqrt#
+  log = unary mpfrLog#
+  sin = unary mpfrSin#
+  tan = unary mpfrTan#
+  cos = unary mpfrCos#
+  asin = unary mpfrArcSin#
+  atan = unary mpfrArcTan#
+  acos = unary mpfrArcCos#
+  sinh = unary mpfrSinh#
+  tanh = unary mpfrTanh#
+  cosh = unary mpfrCosh#
+  asinh = unary mpfrArcSinh#
+  atanh = unary mpfrArcTanh#
+  acosh = unary mpfrArcCosh#
+
+
+foreign import prim "mpfr_cmm_const_log2"    mpfrConstLog2# :: Constant
+foreign import prim "mpfr_cmm_const_euler"   mpfrConstEuler# :: Constant
+foreign import prim "mpfr_cmm_const_catalan" mpfrConstCatalan# :: Constant
+
+-- | Natural logarithm of 2
+kLog2 :: (Rounding r, Precision p) => Rounded r p
+kLog2 = constant mpfrConstLog2#
+-- | 0.577...
+kEuler :: (Rounding r, Precision p) => Rounded r p
+kEuler = constant mpfrConstEuler#
+-- | 0.915...
+kCatalan :: (Rounding r, Precision p) => Rounded r p
+kCatalan = constant mpfrConstCatalan#
+
+--foreign import prim "mpfr_cmm_atan2" mpfrArcTan2# :: Binary
+--instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
+--  atan2 = binary mpfrArcTan2# 

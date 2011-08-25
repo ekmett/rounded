@@ -151,6 +151,7 @@ mpfr_cmm_init_d
     MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
 }
 
+
 mpfr_cmm_get_d
 {
   // arguments: R1 = rounding mode, R2 = prec * sign, R3 = exp, R4 = limbs 
@@ -399,3 +400,90 @@ MPFR_TAKE2_RET1(mpfr_cmm_mul, mpfr_mul)
 MPFR_TAKE2_RET1(mpfr_cmm_div, mpfr_div)
 MPFR_TAKE2_RET1(mpfr_cmm_min, mpfr_min)
 MPFR_TAKE2_RET1(mpfr_cmm_max, mpfr_max)
+MPFR_TAKE2_RET1(mpfr_cmm_atan2, mpfr_atan2)
+
+#define MPFR_TAKE1_RET1(name,mpfr_fun)                            \
+name                                                              \
+{                                                                 \
+  W_ rnd, op1, ret, s1, prec, ps3;                                \
+                                                                  \
+  rnd = R1;                                                       \
+  prec = R5 & ~(1 << PREC_SHIFT);                                 \
+                                                                  \
+  MAYBE_GC(R4_PTR, name);                                         \
+                                                                  \
+  STK_CHK_GEN(2 * SIZEOF_MPFR, R4_PTR, name);                     \
+                                                                  \
+  s1 = R2 >> PREC_SHIFT;                                          \
+                                                                  \
+  op1 = Sp - 1 * SIZEOF_MPFR;                                     \
+  ret = Sp - 2 * SIZEOF_MPFR;                                     \
+                                                                  \
+  if (s1 == 0) {                                                  \
+    MPFR__mpfr_sign(op1) = 1;                                     \
+  } else {                                                        \
+    MPFR__mpfr_sign(op1) = -1;                                    \
+  }                                                               \
+                                                                  \
+  MPFR__mpfr_prec(op1) = R2 & ~(1 << PREC_SHIFT);                 \
+  MPFR__mpfr_exp(op1) = R3;                                       \
+  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R4));          \
+                                                                  \
+  foreign "C" mpfr_init(ret, prec);                               \
+  foreign "C" mpfr_fun(ret, op1, rnd);                            \
+                                                                  \
+  W_ sp;                                                          \
+  if (MPFR__mpfr_sign(ret) <= 1) {                                \
+    sp = MPFR__mpfr_prec(ret);                                    \
+  } else {                                                        \
+    sp = MPFR__mpfr_prec(ret) | (1 << PREC_SHIFT);                \
+  }                                                               \
+                                                                  \
+  RET_NNP(                                                        \
+    sp,                                                           \
+    MPFR__mpfr_exp(ret),                                          \
+    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(ret)) - SIZEOF_StgArrWords);   \
+}
+
+MPFR_TAKE1_RET1(mpfr_cmm_log,  mpfr_log)
+MPFR_TAKE1_RET1(mpfr_cmm_exp,  mpfr_exp)
+MPFR_TAKE1_RET1(mpfr_cmm_sqrt, mpfr_sqrt)
+MPFR_TAKE1_RET1(mpfr_cmm_cos,  mpfr_cos)
+MPFR_TAKE1_RET1(mpfr_cmm_sin,  mpfr_sin)
+MPFR_TAKE1_RET1(mpfr_cmm_tan,  mpfr_tan)
+MPFR_TAKE1_RET1(mpfr_cmm_acos, mpfr_acos)
+MPFR_TAKE1_RET1(mpfr_cmm_asin, mpfr_asin)
+MPFR_TAKE1_RET1(mpfr_cmm_atan, mpfr_atan)
+MPFR_TAKE1_RET1(mpfr_cmm_cosh, mpfr_cosh)
+MPFR_TAKE1_RET1(mpfr_cmm_sinh, mpfr_sinh)
+MPFR_TAKE1_RET1(mpfr_cmm_tanh, mpfr_tanh)
+MPFR_TAKE1_RET1(mpfr_cmm_acosh, mpfr_acosh)
+MPFR_TAKE1_RET1(mpfr_cmm_asinh, mpfr_asinh)
+MPFR_TAKE1_RET1(mpfr_cmm_atanh, mpfr_atanh)
+
+#define MPFR_CONSTANT(name,mpfr_constant)                        \
+name                                                             \
+{                                                                \
+  W_ rnd, prec, mpfr;                                            \
+  rnd = R1;                                                      \
+  prec = R2;                                                     \
+  STK_CHK_GEN(SIZEOF_MPFR, NO_PTRS, name);                       \
+  mpfr = Sp - 1 * SIZEOF_MPFR;                                   \
+  foreign "C" mpfr_init2(mpfr, prec) [];                         \
+  foreign "C" mpfr_constant(mpfr, rnd) [];                       \
+  W_ sp;                                                         \
+  if (MPFR__mpfr_sign(mpfr) <= 1) {                              \
+    sp = MPFR__mpfr_prec(mpfr);                                  \
+  } else {                                                       \
+    sp = MPFR__mpfr_prec(mpfr) | (1 << PREC_SHIFT);              \
+  }                                                              \
+  RET_NNP(                                                       \
+    sp,                                                          \
+    MPFR__mpfr_exp(mpfr),                                        \
+    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords); \
+}
+
+MPFR_CONSTANT(mpfr_cmm_const_pi, mpfr_const_pi)
+MPFR_CONSTANT(mpfr_cmm_const_log2, mpfr_const_log2)
+MPFR_CONSTANT(mpfr_cmm_const_euler, mpfr_const_euler)
+MPFR_CONSTANT(mpfr_cmm_const_catalan, mpfr_const_catalan)
