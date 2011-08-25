@@ -57,7 +57,19 @@
     field_type(s_type, field);      \
     struct_field_macro(str(s_type,field))
 
+#define subfield_offset(s_type, field, subfield) \
+    field_offset_(#s_type "_" #field "_" #subfield,s_type,field.subfield);
+
+#define subfield_type(s_type, field, subfield) \
+    field_type_(#s_type "_" #field "_" #subfield,s_type,field.subfield);
+
+#define struct_subfield(s_type, field, subfield)   \
+    subfield_offset(s_type, field, subfield);    \
+    subfield_type(s_type, field, subfield);      \
+    struct_field_macro(#s_type "_" #field "_" #subfield)
+
 typedef __mpfr_struct MPFR;
+typedef union { mp_size_t s; mp_limb_t l; } MPFR_SIZE_LIMB;
 
 int
 main(int argc, char *argv[])
@@ -68,12 +80,25 @@ main(int argc, char *argv[])
     struct_field(MP_INT,_mp_alloc);
     struct_field(MP_INT,_mp_size);
     struct_field(MP_INT,_mp_d);
+    printf("\n");
+
+    struct_size(MP_RAT);
+    struct_subfield(MP_RAT,_mp_num,_mp_alloc);
+    struct_subfield(MP_RAT,_mp_num,_mp_size);
+    struct_subfield(MP_RAT,_mp_num,_mp_d);
+    struct_subfield(MP_RAT,_mp_den,_mp_alloc);
+    struct_subfield(MP_RAT,_mp_den,_mp_size);
+    struct_subfield(MP_RAT,_mp_den,_mp_d);
+    printf("\n");
 
     struct_size(MPFR);
     struct_field(MPFR,_mpfr_prec);
     struct_field(MPFR,_mpfr_sign);
     struct_field(MPFR,_mpfr_exp);
     struct_field(MPFR,_mpfr_d);
+    struct_size(MPFR_SIZE_LIMB);
     printf("#define PREC_SHIFT %d\n", (int)(sizeof(mpfr_prec_t)*8-1));
+    printf("#define MPFR_MANGLE_PTR(x) (x + SIZEOF_MPFR_SIZE_LIMB)\n");
+    printf("#define MPFR_UNMANGLE_PTR(x) (x - SIZEOF_MPFR_SIZE_LIMB)\n");
     return 0;
 }
