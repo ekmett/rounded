@@ -98,10 +98,10 @@ mpfr_cmm_init_q
 
   MP_RAT__mp_num__mp_alloc(mpq) = W_TO_INT(BYTE_ARR_WDS(d1));
   MP_RAT__mp_num__mp_size(mpq)  = s1;
-  MP_RAT__mp_num__mp_d(mpq)     = d1;
+  MP_RAT__mp_num__mp_d(mpq)     = BYTE_ARR_CTS(d1);
   MP_RAT__mp_den__mp_alloc(mpq) = W_TO_INT(BYTE_ARR_WDS(d2));
   MP_RAT__mp_den__mp_size(mpq)  = s2;
-  MP_RAT__mp_den__mp_d(mpq)     = d2;
+  MP_RAT__mp_den__mp_d(mpq)     = BYTE_ARR_CTS(d2);
 
   foreign "C" mpfr_init2(mpfr, prec);
   foreign "C" mpfr_set_q(mpfr, mpq, rnd);

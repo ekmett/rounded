@@ -135,9 +135,6 @@ instance (Rounding r, Precision p) => Fractional (Rounded r p) where
     case mpfrDiv# (mode# (Proxy::Proxy r)) s e l s' e' l' of
       (# s'', e'', l'' #) -> Rounded s'' e'' l''
 
--- Can't write a real fromInteger yet, as S# and J# are no longer exported from integer-gmp:
--- see http://hackage.haskell.org/trac/ghc/ticket/5419
-
 proxyRounding :: Rounded r p -> Proxy r
 proxyRounding _ = Proxy
 
