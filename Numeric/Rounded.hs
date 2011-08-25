@@ -80,32 +80,60 @@ toString (I# base) (Rounded s e l) =
 instance Rounding r => Show (Rounded r p) where
   showsPrec d (Rounded s e l) = showsPrec d (D# (mpfrGetDouble# (mode# (Proxy::Proxy r)) s e l))
 
-type Binop = CSignPrec# -> CExp# -> ByteArray#
-          -> CSignPrec# -> CExp# -> ByteArray#
-          -> (# CSignPrec#, CExp#, ByteArray# #)
+type Binop 
+  = CSignPrec# -> CExp# -> ByteArray# -> 
+    CSignPrec# -> CExp# -> ByteArray# -> 
+    (# CSignPrec#, CExp#, ByteArray# #)
 
 foreign import prim "mpfr_cmm_add" mpfrAdd# :: CRounding# -> Binop
 foreign import prim "mpfr_cmm_sub" mpfrSub# :: CRounding# -> Binop
 foreign import prim "mpfr_cmm_mul" mpfrMul# :: CRounding# -> Binop
 foreign import prim "mpfr_cmm_div" mpfrDiv# :: CRounding# -> Binop
+foreign import prim "mpfr_cmm_min" mpfrMin# :: CRounding# -> Binop
+foreign import prim "mpfr_cmm_max" mpfrMax# :: CRounding# -> Binop
 
-foreign import prim "mpfr_cmm_sgn" mpfrSgn# :: CSignPrec# -> CExp# -> ByteArray# -> Int#
-foreign import prim "mpfr_cmm_cmp" mpfrCmp# :: CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#
-foreign import prim "mpfr_cmm_equal_p" mpfrEqual# :: CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#
+
+type Comparison 
+  = CSignPrec# -> CExp# -> ByteArray# -> 
+    CSignPrec# -> CExp# -> ByteArray# -> 
+    Int#
+
+foreign import prim "mpfr_cmm_equal_p"         mpfrEqual#    :: Comparison
+foreign import prim "mpfr_cmm_lessgreater_p"   mpfrNotEqual# :: Comparison
+foreign import prim "mpfr_cmm_less_p"          mpfrLess# :: Comparison
+foreign import prim "mpfr_cmm_greater_p"       mpfrGreater# :: Comparison
+foreign import prim "mpfr_cmm_lessequal_p"     mpfrLessEqual# :: Comparison
+foreign import prim "mpfr_cmm_greaterequal_p"  mpfrGreaterEqual# :: Comparison
+
+cmp :: (CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#) -> Rounded r p -> Rounded r p -> Bool
+cmp f (Rounded s e l) (Rounded s' e' l') = I# (f s e l s' e' l') /= 0
+
+bin :: Rounding r => (CRounding# -> Binop) -> Rounded r p -> Rounded r p -> Rounded r p
+bin f (Rounded s e l) (Rounded s' e' l') = r where
+  r = case f (mode# (proxyRounding r)) s e l s' e' l' of
+    (# s'', e'', l'' #) -> Rounded s'' e'' l''
 
 instance Eq (Rounded r p) where
-  Rounded s e l == Rounded s' e' l' = I# (mpfrEqual# s e l s' e' l') /= 0
+  (==) = cmp mpfrEqual#
+  (/=) = cmp mpfrNotEqual#
 
-instance Ord (Rounded r p) where
+foreign import prim "mpfr_cmm_cmp" mpfrCmp# :: CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#
+
+instance Rounding r => Ord (Rounded r p) where
   compare (Rounded s e l) (Rounded s' e' l') = compare (fromIntegral (I# (mpfrCmp# s e l s' e' l'))) (0 :: Int32)
+  (<=) = cmp mpfrLessEqual#
+  (>=) = cmp mpfrGreaterEqual#
+  (<) = cmp mpfrLess#
+  (>) = cmp mpfrGreater#
+  min = bin mpfrMin#
+  max = bin mpfrMax#
+
+foreign import prim "mpfr_cmm_sgn" mpfrSgn# :: CSignPrec# -> CExp# -> ByteArray# -> Int#
 
 instance (Rounding r, Precision p) => Num (Rounded r p) where
-  Rounded s e l + Rounded s' e' l' = case mpfrAdd# (mode# (Proxy::Proxy r)) s e l s' e' l' of
-    (# s'', e'', l'' #) -> Rounded s'' e'' l''
-  Rounded s e l - Rounded s' e' l' = case mpfrSub# (mode# (Proxy::Proxy r)) s e l s' e' l' of
-    (# s'', e'', l'' #) -> Rounded s'' e'' l''
-  Rounded s e l * Rounded s' e' l' = case mpfrMul# (mode# (Proxy::Proxy r)) s e l s' e' l' of
-    (# s'', e'', l'' #) -> Rounded s'' e'' l''
+  (+) = bin mpfrAdd# 
+  (-) = bin mpfrSub# 
+  (*) = bin mpfrMul#
   fromInteger (S# i) = case mpfrFromInt# (prec# (Proxy::Proxy p)) i of
     (# s, e, l #) -> Rounded s e l
   fromInteger (J# i xs) = case mpfrFromInteger# (prec# (Proxy::Proxy p)) i xs of
@@ -146,9 +174,7 @@ instance (Rounding r, Precision p) => Fractional (Rounded r p) where
       case mpfrFromRational# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) ns# nl# ds# dl# of
         (# s, e, l #) -> Rounded s e l
 
-  Rounded s e l / Rounded s' e' l' =
-    case mpfrDiv# (mode# (Proxy::Proxy r)) s e l s' e' l' of
-      (# s'', e'', l'' #) -> Rounded s'' e'' l''
+  (/) = bin mpfrDiv#
 
 proxyRounding :: Rounded r p -> Proxy r
 proxyRounding _ = Proxy

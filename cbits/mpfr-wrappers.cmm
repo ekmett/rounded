@@ -213,50 +213,6 @@ mpfr_cmm_sgn
   jump %ENTRY_CODE(Sp(0));
 }
 
-mpfr_cmm_equal_p
-{
-  /* arguments: R1 = prec * sign, R2 = exp, R3 = limbs
-                R4 = prec * sign, R5 = exp, R6 = limbs
-   */
-  
-  W_ ret, op1, op2, s1, s2;
-
-  MAYBE_GC(R3_PTR & R6_PTR, mpfr_cmm_cmp);
-
-  STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R5_PTR, mpfr_cmm_cmp);
-
-  op1 = Sp - 1 * SIZEOF_MPFR;
-
-  op2 = Sp - 2 * SIZEOF_MPFR;
-  
-  s1 = R1 >> PREC_SHIFT;
-  if (s1 == 0) {
-    MPFR__mpfr_sign(op1) = 1;
-  } else {
-    MPFR__mpfr_sign(op1) = -1;
-  } 
-
-  MPFR__mpfr_prec(op1) = R1 & ~(1 << PREC_SHIFT);
-  MPFR__mpfr_exp(op1) = R2;
-  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));
-
-  s2 = R4 >> PREC_SHIFT;
-
-  if (s2 == 0) {
-    MPFR__mpfr_sign(op2) = 1;
-  } else {
-    MPFR__mpfr_sign(op2) = -1;
-  } 
-
-  MPFR__mpfr_prec(op2) = R4 & ~(1 << PREC_SHIFT);
-  MPFR__mpfr_exp(op2) = R5;
-  MPFR__mpfr_d(op2) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R6));
-
-  (ret) = foreign "C" mpfr_equal_p(op1, op2);
-  R1 = ret;
-  jump %ENTRY_CODE(Sp(0));
-}
-
 mpfr_cmm_cmp
 { 
   /* arguments: R1 = prec * sign, R2 = exp, R3 = limbs
@@ -342,6 +298,46 @@ mpfr_cmm_get_str
   RET_NP(W_[dec], ret - SIZEOF_StgArrWords);
 }
 
+
+#define MPFR_COMPARISON(name,cmp)                             \
+name                                                          \
+{                                                             \
+  W_ ret, op1, op2, s1, s2;                                   \
+  MAYBE_GC(R3_PTR & R6_PTR, name);                            \
+  STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R5_PTR, name);          \
+  op1 = Sp - 1 * SIZEOF_MPFR;                                 \
+  op2 = Sp - 2 * SIZEOF_MPFR;                                 \
+  s1 = R1 >> PREC_SHIFT;                                      \
+  if (s1 == 0) {                                              \
+    MPFR__mpfr_sign(op1) = 1;                                 \
+  } else {                                                    \
+    MPFR__mpfr_sign(op1) = -1;                                \
+  }                                                           \
+  MPFR__mpfr_prec(op1) = R1 & ~(1 << PREC_SHIFT);             \
+  MPFR__mpfr_exp(op1) = R2;                                   \
+  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));      \
+  s2 = R4 >> PREC_SHIFT;                                      \
+  if (s2 == 0) {                                              \
+    MPFR__mpfr_sign(op2) = 1;                                 \
+  } else {                                                    \
+    MPFR__mpfr_sign(op2) = -1;                                \
+  }                                                           \
+  MPFR__mpfr_prec(op2) = R4 & ~(1 << PREC_SHIFT);             \
+  MPFR__mpfr_exp(op2) = R5;                                   \
+  MPFR__mpfr_d(op2) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R6));      \
+  (ret) = foreign "C" cmp(op1, op2);                          \
+  R1 = ret;                                                   \
+  jump %ENTRY_CODE(Sp(0));                                    \
+}
+
+MPFR_COMPARISON(mpfr_cmm_equal_p, mpfr_equal_p)
+MPFR_COMPARISON(mpfr_cmm_greater_p, mpfr_greater_p)
+MPFR_COMPARISON(mpfr_cmm_greaterequal_p, mpfr_greaterequal_p)
+MPFR_COMPARISON(mpfr_cmm_less_p, mpfr_less_p)
+MPFR_COMPARISON(mpfr_cmm_lessequal_p, mpfr_lessequal_p)
+MPFR_COMPARISON(mpfr_cmm_lessgreater_p, mpfr_lessgreater_p)
+MPFR_COMPARISON(mpfr_cmm_unordered_p, mpfr_unordered_p)
+
 #define MPFR_TAKE2_RET1(name,mpfr_fun)                            \
 name                                                              \
 {                                                                 \
@@ -352,7 +348,7 @@ name                                                              \
                                                                   \
   MAYBE_GC(R4_PTR & R7_PTR, name);                                \
                                                                   \
-  STK_CHK_GEN(3 * SIZEOF_MPFR, R4_PTR & R7_PTR, mpfr_cmm_add);    \
+  STK_CHK_GEN(3 * SIZEOF_MPFR, R4_PTR & R7_PTR, name);            \
                                                                   \
   s1 = R2 >> PREC_SHIFT;                                          \
   s2 = R5 >> PREC_SHIFT;                                          \
@@ -401,3 +397,5 @@ MPFR_TAKE2_RET1(mpfr_cmm_add, mpfr_add)
 MPFR_TAKE2_RET1(mpfr_cmm_sub, mpfr_sub)
 MPFR_TAKE2_RET1(mpfr_cmm_mul, mpfr_mul)
 MPFR_TAKE2_RET1(mpfr_cmm_div, mpfr_div)
+MPFR_TAKE2_RET1(mpfr_cmm_min, mpfr_min)
+MPFR_TAKE2_RET1(mpfr_cmm_max, mpfr_max)
