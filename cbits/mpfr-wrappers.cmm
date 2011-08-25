@@ -205,10 +205,103 @@ mpfr_cmm_sgn
   MPFR__mpfr_exp(mpfr) = R2;
   MPFR__mpfr_d(mpfr) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));
 
+  /* TODO check for NaN? */
   (ret) = foreign "C" mpfr_sgn(mpfr);
 
   R1 = ret;
 
+  jump %ENTRY_CODE(Sp(0));
+}
+
+mpfr_cmm_equal_p
+{
+  /* arguments: R1 = prec * sign, R2 = exp, R3 = limbs
+                R4 = prec * sign, R5 = exp, R6 = limbs
+   */
+  
+  W_ ret, op1, op2, s1, s2;
+
+  MAYBE_GC(R3_PTR & R6_PTR, mpfr_cmm_cmp);
+
+  STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R5_PTR, mpfr_cmm_cmp);
+
+  op1 = Sp - 1 * SIZEOF_MPFR;
+
+  op2 = Sp - 2 * SIZEOF_MPFR;
+  
+  s1 = R1 >> PREC_SHIFT;
+  if (s1 == 0) {
+    MPFR__mpfr_sign(op1) = 1;
+  } else {
+    MPFR__mpfr_sign(op1) = -1;
+  } 
+
+  MPFR__mpfr_prec(op1) = R1 & ~(1 << PREC_SHIFT);
+  MPFR__mpfr_exp(op1) = R2;
+  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));
+
+  s2 = R4 >> PREC_SHIFT;
+
+  if (s2 == 0) {
+    MPFR__mpfr_sign(op2) = 1;
+  } else {
+    MPFR__mpfr_sign(op2) = -1;
+  } 
+
+  MPFR__mpfr_prec(op2) = R4 & ~(1 << PREC_SHIFT);
+  MPFR__mpfr_exp(op2) = R5;
+  MPFR__mpfr_d(op2) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R6));
+
+  (ret) = foreign "C" mpfr_equal_p(op1, op2);
+  R1 = ret;
+  jump %ENTRY_CODE(Sp(0));
+}
+
+mpfr_cmm_cmp
+{ 
+  /* arguments: R1 = prec * sign, R2 = exp, R3 = limbs
+                R4 = prec * sign, R5 = exp, R6 = limbs
+   */
+  W_ ret, err, op1, op2, s1, s2;
+
+  MAYBE_GC(R3_PTR & R6_PTR, mpfr_cmm_cmp);
+
+  STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R5_PTR, mpfr_cmm_cmp);
+
+  op1 = Sp - 1 * SIZEOF_MPFR;
+  op2 = Sp - 2 * SIZEOF_MPFR;
+  
+  s1 = R1 >> PREC_SHIFT;
+  if (s1 == 0) {
+    MPFR__mpfr_sign(op1) = 1;
+  } else {
+    MPFR__mpfr_sign(op1) = -1;
+  } 
+  MPFR__mpfr_prec(op1) = R1 & ~(1 << PREC_SHIFT);
+  MPFR__mpfr_exp(op1) = R2;
+  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));
+
+  s2 = R4 >> PREC_SHIFT;
+  if (s2 == 0) {
+    MPFR__mpfr_sign(op2) = 1;
+  } else {
+    MPFR__mpfr_sign(op2) = -1;
+  } 
+  MPFR__mpfr_prec(op2) = R4 & ~(1 << PREC_SHIFT);
+  MPFR__mpfr_exp(op2) = R5;
+  MPFR__mpfr_d(op2) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R6));
+
+  foreign "C" mpfr_clear_erangeflag();
+  (ret) = foreign "C" mpfr_cmp(op1,op2);
+  if (ret == 0) {
+    (err) = foreign "C" mpfr_erangeflag_p();
+    if (err != 0) {
+      foreign "C" mpfr_clear_erangeflag();
+    }
+    R1 = err;
+  } else {
+    R1 = ret;
+  }
   jump %ENTRY_CODE(Sp(0));
 }
 

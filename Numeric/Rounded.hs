@@ -90,8 +90,14 @@ foreign import prim "mpfr_cmm_mul" mpfrMul# :: CRounding# -> Binop
 foreign import prim "mpfr_cmm_div" mpfrDiv# :: CRounding# -> Binop
 
 foreign import prim "mpfr_cmm_sgn" mpfrSgn# :: CSignPrec# -> CExp# -> ByteArray# -> Int#
+foreign import prim "mpfr_cmm_cmp" mpfrCmp# :: CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#
+foreign import prim "mpfr_cmm_equal_p" mpfrEqual# :: CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#
 
-instance Eq (Rounded r p) 
+instance Eq (Rounded r p) where
+  Rounded s e l == Rounded s' e' l' = I# (mpfrEqual# s e l s' e' l') /= 0
+
+instance Ord (Rounded r p) where
+  compare (Rounded s e l) (Rounded s' e' l') = compare (fromIntegral (I# (mpfrCmp# s e l s' e' l'))) (0 :: Int32)
 
 instance (Rounding r, Precision p) => Num (Rounded r p) where
   Rounded s e l + Rounded s' e' l' = case mpfrAdd# (mode# (Proxy::Proxy r)) s e l s' e' l' of
