@@ -104,9 +104,8 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
     (# s, e, l #) -> Rounded s e l
   fromInteger (J# s l) = case mpfrFromInteger# (prec# (Proxy::Proxy p)) s l of
     (# s, e, l #) -> Rounded s e l
-  abs (Rounded s e l) = case Abs (I# s) of
+  abs (Rounded s e l) = case abs (I# s) of
     I# s' -> Rounded s' e l
-  signum (Rounded s e l) = signum (I# s) 
 
 foreign import prim "mpfr_cmm_init_si" mpfrFromInt#
   :: CPrecision# -> Int# -> (# CSignPrec#, CExp#, ByteArray# #)
