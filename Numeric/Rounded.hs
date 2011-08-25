@@ -34,25 +34,17 @@ module Numeric.Rounded
     , toString
     ) where
 
-import Control.Applicative
+import Debug.Trace
 import Data.Proxy
 import Data.Bits
-import Data.Ratio
-import Data.Word
-import Data.Reflection
 import GHC.Integer.GMP.Internals
-import GHC.Exts (Int(..)) 
-import Foreign.C.Types
-import Foreign.C.String
 import Numeric.Precision
 import Numeric.Rounding
 import GHC.Prim
 import GHC.Types
-import GHC.Word
-import GHC.Int
 import GHC.Real
+import GHC.Int
 
-type CSign#      = Int#
 type CSignPrec#  = Int#
 type CPrecision# = Int#
 type CExp#       = Int#
@@ -98,6 +90,8 @@ foreign import prim "mpfr_cmm_sub" mpfrSub# :: CRounding# -> Binop
 foreign import prim "mpfr_cmm_mul" mpfrMul# :: CRounding# -> Binop
 foreign import prim "mpfr_cmm_div" mpfrDiv# :: CRounding# -> Binop
 
+foreign import prim "mpfr_cmm_sgn" mpfrSgn# :: CSignPrec# -> CExp# -> ByteArray# -> Int#
+
 instance Eq (Rounded r p) 
 
 instance (Rounding r, Precision p) => Num (Rounded r p) where
@@ -109,10 +103,15 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
     (# s'', e'', l'' #) -> Rounded s'' e'' l''
   fromInteger (S# i) = case mpfrFromInt# (prec# (Proxy::Proxy p)) i of
     (# s, e, l #) -> Rounded s e l
-  fromInteger (J# s l) = case mpfrFromInteger# (prec# (Proxy::Proxy p)) s l of
+  fromInteger (J# i xs) = case mpfrFromInteger# (prec# (Proxy::Proxy p)) i xs of
     (# s, e, l #) -> Rounded s e l
   abs (Rounded s e l) = case I# s .&. complement prec_bit of
     I# s' -> Rounded s' e l
+  signum (Rounded s e l) = case compare (fromIntegral sgn) (0 :: Int32) of
+    LT -> -1 
+    EQ -> 0
+    GT -> 1
+    where sgn = I# (mpfrSgn# s e l)
 
 foreign import prim "mpfr_cmm_init_si" mpfrFromInt#
   :: CPrecision# -> Int# -> (# CSignPrec#, CExp#, ByteArray# #)

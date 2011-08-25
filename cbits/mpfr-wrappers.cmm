@@ -183,6 +183,35 @@ mpfr_cmm_get_d
   jump %ENTRY_CODE(Sp(0));
 }
 
+mpfr_cmm_sgn
+{ // arguments: R1 = prec * sign, R2 = exp, R3 = limbs
+  W_ ret, sv, mpfr;
+
+  MAYBE_GC(R3_PTR, mpfr_cmm_sgn);
+
+  STK_CHK_GEN(SIZEOF_MPFR, R3_PTR, mpfr_cmm_sgn);
+
+  mpfr = Sp - 1 * SIZEOF_MPFR;
+
+  sv = R1 >> PREC_SHIFT;
+
+  if (sv == 0) {
+    MPFR__mpfr_sign(mpfr) = 1;
+  } else {
+    MPFR__mpfr_sign(mpfr) = -1;
+  }
+
+  MPFR__mpfr_prec(mpfr) = R1 & ~(1 << PREC_SHIFT);
+  MPFR__mpfr_exp(mpfr) = R2;
+  MPFR__mpfr_d(mpfr) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));
+
+  (ret) = foreign "C" mpfr_sgn(mpfr);
+
+  R1 = ret;
+
+  jump %ENTRY_CODE(Sp(0));
+}
+
 mpfr_cmm_get_str
 {
   // arguments: R1 = rounding mode, R2 = output number base, R3 = prec * sign, R4 = exp, R5 = limbs
