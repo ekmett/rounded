@@ -1,5 +1,5 @@
 {-# LANGUAGE MagicHash, EmptyDataDecls #-}
-module Numeric.Rounding
+module Numeric.Rounded.Rounding
   ( Rounding(..)
   , TowardNearest
   , TowardZero

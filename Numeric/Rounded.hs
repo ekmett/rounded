@@ -37,8 +37,8 @@ module Numeric.Rounded
 import Data.Proxy
 import Data.Bits
 import GHC.Integer.GMP.Internals
-import Numeric.Precision
-import Numeric.Rounding
+import Numeric.Rounded.Precision
+import Numeric.Rounded.Rounding
 import GHC.Prim
 import GHC.Types
 import GHC.Real

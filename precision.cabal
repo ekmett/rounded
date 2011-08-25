@@ -30,8 +30,8 @@ library
     Numeric.Rounded
 
   other-modules:
-    Numeric.Rounding
-    Numeric.Precision
+    Numeric.Rounded.Rounding
+    Numeric.Rounded.Precision
 
   build-depends:   
     base             >= 4     && < 5,

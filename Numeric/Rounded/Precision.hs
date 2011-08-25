@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP, EmptyDataDecls, FlexibleContexts, MultiParamTypeClasses, UndecidableInstances, TemplateHaskell, Rank2Types, MagicHash #-}
-module Numeric.Precision
+module Numeric.Rounded.Precision
     ( Precision(..)
     , reifyPrecision
     , bits
