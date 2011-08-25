@@ -34,7 +34,6 @@ module Numeric.Rounded
     , toString
     ) where
 
-import Debug.Trace
 import Data.Proxy
 import Data.Bits
 import GHC.Integer.GMP.Internals
