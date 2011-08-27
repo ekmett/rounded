@@ -40,8 +40,29 @@ extern void mpfr_cache();
 void __attribute__((used)) noopForMPFR(void *alloc_fn, void *realloc_fn, void *free_fn) {
 }
 
+static void find_cache_fn() {
+  cache_fn_start = mpfr_cache;
+
+  Dl_info info;
+  dladdr(cache_fn_start, &info);
+
+  // This is linear in the length of the cache function.
+  // It could be done more efficiently with a binary search that
+  // probes outwards exponentially before refining.
+  cache_fn_end = cache_fn_start;
+  do {
+    cache_fn_end = (long *)cache_fn_end + 1;
+    dladdr(cache_fn_end, &info);
+  } while (!strcmp(info.dli_sname, "mpfr_cache"));
+
+  cache_fn_end = (long *)cache_fn_end - 1;
+}
+
 void __attribute__((used)) setAllocForMPFR( void )
 {
+  if (!cache_fn_start) {
+    find_cache_fn();
+  }
   mp_set_memory_functions(stgAllocForMPFR, stgReallocForMPFR, stgDeallocForMPFR);
 }
 
@@ -64,23 +85,6 @@ static void initAllocForMPFR( void )
   }
 }
 
-static void find_cache_fn() {
-  cache_fn_start = mpfr_cache;
-
-  Dl_info info;
-  dladdr(cache_fn_start, &info);
-
-  // This is linear in the length of the cache function.
-  // It could be done more efficiently with a binary search that
-  // probes outwards exponentially before refining.
-  cache_fn_end = cache_fn_start;
-  do {
-    cache_fn_end = (long *)cache_fn_end + 1;
-    dladdr(cache_fn_end, &info);
-  } while (!strcmp(info.dli_sname, "mpfr_cache"));
-
-  cache_fn_end = (long *)cache_fn_end - 1;
-}
 
 /* -----------------------------------------------------------------------------
    Allocation functions for GMP.
