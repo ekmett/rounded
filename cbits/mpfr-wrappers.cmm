@@ -8,6 +8,21 @@
   foreign "C" printf("exp:   %lld\n", MPFR__mpfr_exp(mpfr)); \
   foreign "C" printf("limbs: %p\n", MPFR__mpfr_d(mpfr));
 
+mpfr_cmm_noop
+{
+  // N.B. this needs to be referred to, somewhere. I'm putting it here until we can find somewhere better
+  // that stil makes the constructor in alloc.c fire
+  foreign "C" noopForMPFR();
+  jump %ENTRY_CODE(Sp(0));
+}
+
+// This lives here for linkage voodoo purposes, rather than linking directly to alloc.c with ccall
+mpfr_cmm_init_global
+{
+  foreign "C" setAllocForMPFR();
+  jump %ENTRY_CODE(Sp(0));
+}
+
 mpfr_cmm_init_si
 {
   /* arguments: R1 = precision, R2 = int */

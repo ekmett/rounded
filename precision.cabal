@@ -9,7 +9,7 @@ maintainer:         ekmett@gmail.com
 category:           Numeric, Math
 build-type:         Custom
 cabal-version:      >= 1.6
-extra-source-files: cbits/mkMpfrDerivedConstants.c
+extra-source-files: cbits/mkMpfrDerivedConstants.c, cbits/alloc.c
 description:
     Numeric instances for MPFR that use the \"Implicit Configurations\" from 
     <http://www.cs.rutgers.edu/~ccshan/prepose/prepose.pdf>
@@ -44,11 +44,12 @@ library
   ghc-options: -Wall
 
   c-sources:
+    cbits/alloc.c
     cbits/mpfr-wrappers.cmm
 
   include-dirs: dist/include /opt/local/include
 
-  extra-libraries: mpfr
+  extra-libraries: mpfr, dl
 
   extra-lib-dirs: /opt/local/lib
 

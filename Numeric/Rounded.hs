@@ -65,6 +65,13 @@ data Rounded r p = Rounded
   , roundedLimbs    :: ByteArray#
   }
 
+-- This needs to be here if _initGlobal# isn't here. Should behave like the identity function,
+-- but it appears we can't make foreign import prim bindings return IO () so this is it:
+foreign import prim "mpfr_cmm_noop" _mpfrNoop# :: Int# -> Int#
+
+-- This ensures our allocators are set correctly. Should behave like the identity function.
+foreign import prim "mpfr_cmm_init_global" _initGlobal# :: Int# -> Int#
+
 foreign import prim "mpfr_cmm_get_d" mpfrGetDouble#
   :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double# 
 
