@@ -1,4 +1,8 @@
 {-# LANGUAGE CPP, EmptyDataDecls, FlexibleContexts, MultiParamTypeClasses, UndecidableInstances, TemplateHaskell, Rank2Types, MagicHash #-}
+
+#ifndef MIN_VERSION_template_haskell
+#define MIN_VERSION_template_haskell(x,y,z) (defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ > 706)
+#endif
 module Numeric.Rounded.Precision
     ( Precision(..)
     , reifyPrecision
@@ -52,7 +56,7 @@ retagDouble f _ = f Proxy
 instance Precision n => Precision (PrecDouble n) where
     precision = (2*) <$> retagDouble precision 
 
--- | 
+-- |
 -- A Precision for a specified number of bits.
 --
 -- > type Huge r = Rounded r $(bits 512)
@@ -62,10 +66,18 @@ bits n = case divMod n 2 of
         (q,0) -> conT ''PrecDouble `appT` bits q
         (0,1) -> conT ''PrecSucc `appT` conT ''PrecZero
         (q,1) -> conT ''PrecSucc `appT` (conT ''PrecDouble `appT` bits q)
-        (_,_) -> error "bits: negative"
+        (_,_) -> err "bits: A negative number of bits were requested"
 
 bytes :: Int -> Q Type
 bytes = bits . (*8)
+
+err :: String -> Q a
+#if MIN_VERSION_template_haskell(2,8,0)
+err = reportError
+#else
+err = report True
+#endif
+
 
 data ReifiedPrecision s
 

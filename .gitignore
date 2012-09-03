@@ -1,8 +1,14 @@
 _darcs
 dist
 Main.hi
-Main.o
 Makefile
 config.log
 config.status
 docs
+*.o
+*.lo
+libmpfr.la
+mparam.h
+.libs
+.deps
+libtool
