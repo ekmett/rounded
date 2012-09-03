@@ -114,12 +114,12 @@ mpfrHooks = autoconfUserHooks
 
     putStrLn "Mangling static library..."
     inDirectory (distDir </> "tmp") $ do
-      runOrBomb "ar" ["-x", distDir </> "build" </> "libHSprecision-0.0.1.a"]
+      runOrBomb "ar" ["-x", distDir </> "build" </> "libHSrounded-0.0.1.a"]
       runOrBomb "ar" ["-x", distDir </> "lib" </> "libmpfr.a"]
 
     objects <- map ((distDir </> "tmp") </>) <$> filter (".o" `isSuffixOf`) <$> getDirectoryContents (distDir </> "tmp")
 
-    createArLibArchive silent ar (distDir </> "build" </> "libHSprecision-0.0.1.a") objects
+    createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.0.1.a") objects
 
     postBuild simpleUserHooks args flags pkg_descr lbi
 

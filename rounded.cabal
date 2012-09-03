@@ -1,4 +1,4 @@
-name:               precision
+name:               rounded
 version:            0.0.1
 synopsis:           Correctly-rounded arbitrary-precision floating point numbers using MPFR
 homepage:           http://github.com/ekmett/rounded
@@ -19,28 +19,27 @@ description:
     .
     > sin pi :: Rounded TowardZero Double
     > rounded TowardZero 256 (sin pi)
-    
 
 source-repository head
   type: git
   location: git://github.com/ekmett/rounded.git
 
 library
-  exposed-modules: 
+  exposed-modules:
     Numeric.Rounded
 
   other-modules:
     Numeric.Rounded.Rounding
     Numeric.Rounded.Precision
 
-  build-depends:   
+  build-depends:
     base             >= 4     && < 5,
     reflection       >= 0.5   && < 1.2,
-    integer-gmp      >= 0.2   && < 0.5,
     ghc-prim,
+    integer-gmp      >= 0.2   && < 0.6,
     tagged           >= 0.2.3 && < 0.5,
     parallel,
-    template-haskell >= 2.4   && < 2.8
+    template-haskell >= 2.4   && < 2.9
 
   ghc-options: -Wall -Werror
 
@@ -49,7 +48,7 @@ library
   
   extra-libraries: mpfr
   
-  extra-lib-dirs: /Users/pumpkin/Sandbox/Haskell/precision/dist/lib/
+  extra-lib-dirs: /Users/pumpkin/Sandbox/Haskell/rounded/dist/lib/
 
   include-dirs: dist/include
 
