@@ -78,11 +78,25 @@ toString# ba# = go 0# where
   go i | i <# (sizeofByteArray# ba# -# 1#) = C# (unsafeCoerce# (indexWord8Array# ba# i)) : go (i +# 1#)
        | otherwise = []
 
+-- This whole thing is a bit of a hack attempting to replicate the hack that is formatRealFloat, but it should do for now
 toString :: forall r p. Rounding r => Int -> Rounded r p -> String
-toString (I# base) (Rounded s e l) =
-  case mpfr_cmm_get_str (mode# (Proxy::Proxy r)) base s e l of
-    (# d, buf #) | d <=# 0#  -> "0." ++ toString# buf
-                 | otherwise -> let (x, y) = splitAt (I# d) (toString# buf) in x ++ "." ++ y
+toString (I# base) (Rounded s e l) = 
+  -- FIXME: Less hackish would be to use isNaN or infinity instead of breaking up the string...
+  case buf of
+    '-':'@':_ -> "-Infinity"
+    '-':ds    -> '-' : withExponent ex ds
+    '@':'I':_ -> "Infinity"
+    '@':'N':_ -> "NaN"
+    ds        -> withExponent ex ds
+  where
+  withExponent _ [] = ""
+  withExponent (-1) ds = "0." ++ ds
+  withExponent q dds@(d:ds) | q < -1 = d : '.' : ds ++ "e" ++ show q
+                            | q > 6  = d : '.' : ds ++ "e" ++ show (q - 1)
+                            | otherwise = let (x, y) = splitAt q dds in x ++ "." ++ y
+
+  (ex, buf) = case mpfr_cmm_get_str (mode# (Proxy::Proxy r)) base s e l of
+    (# e#, buf# #) -> (I# e#, toString# buf#)
 
 instance Rounding r => Show (Rounded r p) where
   showsPrec _ = showString . toString 10 -- showsPrec d (D# (mpfr_cmm_get_d (mode# (Proxy::Proxy r)) s e l))

@@ -1,13 +1,6 @@
 #include "Cmm.h"
 #include "MpfrDerivedConstants.h"
 
-// N.B: this is making assumptions about the sizes of mpfr fields; TODO: fix it
-#define MPFR_SHOW(mpfr) \
-  foreign "C" printf("prec:  %lld\n", MPFR__mpfr_prec(mpfr)); \
-  foreign "C" printf("sign:  %d\n", MPFR__mpfr_sign(mpfr)); \
-  foreign "C" printf("exp:   %lld\n", MPFR__mpfr_exp(mpfr)); \
-  foreign "C" printf("limbs: %p\n", MPFR__mpfr_d(mpfr));
-
 #define MPFR_REBUILD(X, Y, Z, mpfr)                               \
   if (X >> PREC_SHIFT == 0) {                                     \
     MPFR__mpfr_sign(mpfr) = 1;                                    \
@@ -228,6 +221,7 @@ mpfr_cmm_get_str
   W_ dec;
   dec = Sp - 1 * SIZEOF_MPFR - WDS(1);
 
+  // Free the memory...
   (ret) = foreign "C" mpfr_get_str(0, dec, base, 0, mpfr, rnd);
 
   RET_NP(W_[dec], ret - SIZEOF_StgArrWords);
