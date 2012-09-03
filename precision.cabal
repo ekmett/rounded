@@ -35,21 +35,21 @@ library
 
   build-depends:   
     base             >= 4     && < 5,
-    reflection       >= 0.5   && < 0.6,
-    integer-gmp      >= 0.2   && < 0.4,
+    reflection       >= 0.5   && < 1.2,
+    integer-gmp      >= 0.2   && < 0.5,
     ghc-prim,
-    tagged           >= 0.2.3 && < 0.3,
-    template-haskell >= 2.4   && < 2.7
+    tagged           >= 0.2.3 && < 0.5,
+    parallel,
+    template-haskell >= 2.4   && < 2.8
 
-  ghc-options: -Wall
+  ghc-options: -Wall -Werror
 
   c-sources:
-    cbits/alloc.c
     cbits/mpfr-wrappers.cmm
+  
+  extra-libraries: mpfr
+  
+  extra-lib-dirs: /Users/pumpkin/Sandbox/Haskell/precision/dist/lib/
 
-  include-dirs: dist/include /opt/local/include
-
-  extra-libraries: mpfr, dl
-
-  extra-lib-dirs: /opt/local/lib
+  include-dirs: dist/include
 

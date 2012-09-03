@@ -2,7 +2,7 @@
            , GHCForeignImportPrim
            , MagicHash
            , UnboxedTuples
-           , UnliftedFFITypes 
+           , UnliftedFFITypes
            , ScopedTypeVariables
            , Rank2Types
            , TemplateHaskell
@@ -10,7 +10,7 @@
            #-}
 
 module Numeric.Rounded
-    ( 
+    (
     -- * floating point numbers with a specified rounding mode and precision
       Rounded(..)
     , fromInt
@@ -20,7 +20,7 @@ module Numeric.Rounded
     , bits 		-- create a precision with a given number of bits at compile time
     , bytes 		-- create a precision with a given number of bytes at compile time
     , reifyPrecision 	-- create a precision with a given number of bits at runtime
-    -- * Rounding 
+    -- * Rounding
     , Rounding
     -- ** Rounding Modes
     , TowardNearest
@@ -41,42 +41,37 @@ module Numeric.Rounded
 import Data.Proxy
 import Data.Bits
 import GHC.Integer.GMP.Internals
-import Numeric.Rounded.Precision
-import Numeric.Rounded.Rounding
+import GHC.Integer.GMP.Prim
 import GHC.Prim
 import GHC.Types
 import GHC.Real
 import GHC.Int
+import Numeric.Rounded.Precision
+import Control.Parallel()
+import Numeric.Rounded.Rounding
+import System.IO.Unsafe()
 
 type CSignPrec#  = Int#
 type CPrecision# = Int#
 type CExp#       = Int#
 type CRounding#  = Int#
 
-prec_bit :: Int 
+prec_bit :: Int
 prec_bit | b63 == 0 = b31
          | otherwise = b63
   where b63 = bit 63
         b31 = bit 31
 
-data Rounded r p = Rounded 
+data Rounded r p = Rounded
   { roundedSignPrec :: CSignPrec# -- Sign# * Precision#
   , roundedExp      :: CExp#
   , roundedLimbs    :: ByteArray#
   }
 
--- This needs to be here if _initGlobal# isn't here. Should behave like the identity function,
--- but it appears we can't make foreign import prim bindings return IO () so this is it:
-foreign import prim "mpfr_cmm_noop" _mpfrNoop# :: Int# -> Int#
+-- We could use this in a rewrite rule for fast conversions to Double...
+-- foreign import prim "mpfr_cmm_get_d"       mpfr_cmm_get_d :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double#
 
--- This ensures our allocators are set correctly. Should behave like the identity function.
-foreign import prim "mpfr_cmm_init_global" _initGlobal# :: Int# -> Int#
-
-foreign import prim "mpfr_cmm_get_d" mpfrGetDouble#
-  :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double# 
-
-foreign import prim "mpfr_cmm_get_str" mpfrGetString#
-  :: CRounding# -> Int# -> CSignPrec# -> CExp# -> ByteArray# -> (# Int#, ByteArray# #)
+foreign import prim "mpfr_cmm_get_str"     mpfr_cmm_get_str :: CRounding# -> Int# -> CSignPrec# -> CExp# -> ByteArray# -> (# Int#, ByteArray# #)
 
 toString# :: ByteArray# -> String
 toString# ba# = go 0# where
@@ -85,16 +80,18 @@ toString# ba# = go 0# where
 
 toString :: forall r p. Rounding r => Int -> Rounded r p -> String
 toString (I# base) (Rounded s e l) =
-  case mpfrGetString# (mode# (Proxy::Proxy r)) base s e l of
-    (# d, buf #) -> let (x, y) = splitAt (I# d) (toString# buf) in x ++ "." ++ y
+  case mpfr_cmm_get_str (mode# (Proxy::Proxy r)) base s e l of
+    (# d, buf #) | d <=# 0#  -> "0." ++ toString# buf
+                 | otherwise -> let (x, y) = splitAt (I# d) (toString# buf) in x ++ "." ++ y
 
 instance Rounding r => Show (Rounded r p) where
-  showsPrec d (Rounded s e l) = showsPrec d (D# (mpfrGetDouble# (mode# (Proxy::Proxy r)) s e l))
+  showsPrec _ = showString . toString 10 -- showsPrec d (D# (mpfr_cmm_get_d (mode# (Proxy::Proxy r)) s e l))
 
-type Binary 
-  = CRounding# -> 
-    CSignPrec# -> CExp# -> ByteArray# -> 
-    CSignPrec# -> CExp# -> ByteArray# -> 
+-- N.B.: similar to Unary, assumes that output precision is same as precsion of _second_ operand
+type Binary
+  = CRounding# ->
+    CSignPrec# -> CExp# -> ByteArray# ->
+    CSignPrec# -> CExp# -> ByteArray# ->
     (# CSignPrec#, CExp#, ByteArray# #)
 
 foreign import prim "mpfr_cmm_add" mpfrAdd# :: Binary
@@ -104,9 +101,9 @@ foreign import prim "mpfr_cmm_div" mpfrDiv# :: Binary
 foreign import prim "mpfr_cmm_min" mpfrMin# :: Binary
 foreign import prim "mpfr_cmm_max" mpfrMax# :: Binary
 
-type Comparison 
-  = CSignPrec# -> CExp# -> ByteArray# -> 
-    CSignPrec# -> CExp# -> ByteArray# -> 
+type Comparison
+  = CSignPrec# -> CExp# -> ByteArray# ->
+    CSignPrec# -> CExp# -> ByteArray# ->
     Int#
 
 foreign import prim "mpfr_cmm_equal_p"         mpfrEqual#    :: Comparison
@@ -143,8 +140,8 @@ instance Rounding r => Ord (Rounded r p) where
 foreign import prim "mpfr_cmm_sgn" mpfrSgn# :: CSignPrec# -> CExp# -> ByteArray# -> Int#
 
 instance (Rounding r, Precision p) => Num (Rounded r p) where
-  (+) = binary mpfrAdd# 
-  (-) = binary mpfrSub# 
+  (+) = binary mpfrAdd#
+  (-) = binary mpfrSub#
   (*) = binary mpfrMul#
   fromInteger (S# i) = case mpfrFromInt# (prec# (Proxy::Proxy p)) i of
     (# s, e, l #) -> Rounded s e l
@@ -153,7 +150,7 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
   abs (Rounded s e l) = case I# s .&. complement prec_bit of
     I# s' -> Rounded s' e l
   signum (Rounded s e l) = case compare (fromIntegral sgn) (0 :: Int32) of
-    LT -> -1 
+    LT -> -1
     EQ -> 0
     GT -> 1
     where sgn = I# (mpfrSgn# s e l)
@@ -171,7 +168,7 @@ foreign import prim "mpfr_cmm_init_q" mpfrFromRational#
   -> (# CSignPrec#, CExp#, ByteArray# #)
 
 instance (Rounding r, Precision p) => Fractional (Rounded r p) where
-  fromRational x = case x of 
+  fromRational x = case x of
     S# n# :% S# d# -> case int2Integer# n# of
       (# ns#, nl# #) -> case int2Integer# d# of
         (# ds#, dl# #) -> conv ns# nl# ds# dl#
@@ -194,22 +191,28 @@ proxyRounding _ = Proxy
 proxyPrecision :: Rounded r p -> Proxy p
 proxyPrecision _ = Proxy
 
+-- TODO: shouldn't this take a rounding, too? It's conceivable that an Int might exceed the requested
+-- precision, which would require rounding.
 fromInt :: Precision p => Int -> Rounded r p
-fromInt (I# i) = r where 
+fromInt (I# i) = r where
   r = case mpfrFromInt# (prec# (proxyPrecision r)) i of
     (# s, e, l #) -> Rounded s e l
 
-foreign import prim "mpfr_cmm_init_d" mpfrFromDouble#
+foreign import prim "mpfr_cmm_init_d" mfpr_cmm_init_d
   :: CRounding# -> CPrecision# -> Double# -> (# CSignPrec#, CExp#, ByteArray# #)
 
-fromDouble :: (Rounding r, Precision p) => Double -> Rounded r p 
-fromDouble (D# d) = r where 
-  r = case mpfrFromDouble# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) d of
+fromDouble :: (Rounding r, Precision p) => Double -> Rounded r p
+fromDouble (D# d) = r where
+  r = case mfpr_cmm_init_d (mode# (proxyRounding r)) (prec# (proxyPrecision r)) d of
     (# s, e, l #) -> Rounded s e l
 
+-- N.B.: This (and the corresponding CMM) assumes that you want same precision as the
+-- operand. Is this what we want? All the standard Haskell typeclasses are homogeneous
+-- in the type, and since the precision is recorded in the type, this seems like a safe
+-- assumption, but perhaps someone might want to ask for a higher precision for output?
 type Unary
   = CRounding# ->
-    CSignPrec# -> CExp# -> ByteArray# -> 
+    CSignPrec# -> CExp# -> ByteArray# ->
     (# CSignPrec#, CExp#, ByteArray# #)
 
 foreign import prim "mpfr_cmm_log" mpfrLog# :: Unary
@@ -233,11 +236,10 @@ unary f (Rounded s e l) = r where
   r = case f (mode# (proxyRounding r)) s e l of
     (# s', e', l' #) -> Rounded s' e' l'
 
-type Constant
-  = CRounding# -> CPrecision# -> 
-    (# CSignPrec#, CExp#, ByteArray# #)
 
-foreign import prim "mpfr_cmm_const_pi" mpfrConstPi# :: Constant
+type Constant = CRounding# -> CPrecision# -> (# CSignPrec#, CExp#, ByteArray# #)
+
+foreign import prim "mpfr_cmm_const_pi"      mpfrConstPi#      :: Constant
 
 constant :: (Rounding r, Precision p) => Constant -> Rounded r p
 constant k = r where
@@ -279,4 +281,4 @@ kCatalan = constant mpfrConstCatalan#
 
 --foreign import prim "mpfr_cmm_atan2" mpfrArcTan2# :: Binary
 --instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
---  atan2 = binary mpfrArcTan2# 
+--  atan2 = binary mpfrArcTan2#

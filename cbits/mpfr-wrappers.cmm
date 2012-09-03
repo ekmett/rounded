@@ -8,27 +8,36 @@
   foreign "C" printf("exp:   %lld\n", MPFR__mpfr_exp(mpfr)); \
   foreign "C" printf("limbs: %p\n", MPFR__mpfr_d(mpfr));
 
-mpfr_cmm_noop
-{
-  // N.B. this needs to be referred to, somewhere. I'm putting it here until we can find somewhere better
-  // that stil makes the constructor in alloc.c fire
-  foreign "C" noopForMPFR();
-  jump %ENTRY_CODE(Sp(0));
-}
+#define MPFR_REBUILD(X, Y, Z, mpfr)                               \
+  if (X >> PREC_SHIFT == 0) {                                     \
+    MPFR__mpfr_sign(mpfr) = 1;                                    \
+  } else {                                                        \
+    MPFR__mpfr_sign(mpfr) = -1;                                   \
+  }                                                               \
+                                                                  \
+  MPFR__mpfr_prec(mpfr) = X & ~(1 << PREC_SHIFT);                 \
+  MPFR__mpfr_exp(mpfr) = Y;                                       \
+  MPFR__mpfr_d(mpfr) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(Z));
 
-// This lives here for linkage voodoo purposes, rather than linking directly to alloc.c with ccall
-mpfr_cmm_init_global
-{
-  foreign "C" setAllocForMPFR();
-  jump %ENTRY_CODE(Sp(0));
-}
+#define MPFR_RETURN1(mpfr)                                        \
+  W_ sign_prec;                                                   \
+  if (MPFR__mpfr_sign(mpfr) <= 1) {                               \
+    sign_prec = MPFR__mpfr_prec(mpfr);                            \
+  } else {                                                        \
+    sign_prec = MPFR__mpfr_prec(mpfr) | (1 << PREC_SHIFT);        \
+  }                                                               \
+                                                                  \
+  RET_NNP(                                                        \
+    sign_prec,                                                    \
+    MPFR__mpfr_exp(mpfr),                                         \
+    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
 
 mpfr_cmm_init_si
 {
   /* arguments: R1 = precision, R2 = int */
   W_ prec, i;
   W_ mpfr;
-  
+
   prec = R1;
   i = R2;
 
@@ -39,17 +48,7 @@ mpfr_cmm_init_si
   foreign "C" mpfr_init2(mpfr, prec);
   foreign "C" mpfr_set_si(mpfr, i, 0);
 
-  W_ sp;
-  if (MPFR__mpfr_sign(mpfr) <= 1) {
-    sp = MPFR__mpfr_prec(mpfr);
-  } else {
-    sp = MPFR__mpfr_prec(mpfr) | (1 << PREC_SHIFT);
-  }
-
-  RET_NNP(
-    sp,
-    MPFR__mpfr_exp(mpfr),
-    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
+  MPFR_RETURN1(mpfr);
 }
 
 mpfr_cmm_init_z
@@ -76,17 +75,7 @@ mpfr_cmm_init_z
   foreign "C" mpfr_init2(mpfr, prec);
   foreign "C" mpfr_set_z(mpfr, mpz, 0);
 
-  W_ sp;
-  if (MPFR__mpfr_sign(mpfr) <= 1) {
-    sp = MPFR__mpfr_prec(mpfr);
-  } else {
-    sp = MPFR__mpfr_prec(mpfr) | (1 << PREC_SHIFT);
-  }
-
-  RET_NNP(
-    sp,
-    MPFR__mpfr_exp(mpfr),
-    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
+  MPFR_RETURN1(mpfr);
 }
 
 mpfr_cmm_init_q
@@ -121,18 +110,7 @@ mpfr_cmm_init_q
   foreign "C" mpfr_init2(mpfr, prec);
   foreign "C" mpfr_set_q(mpfr, mpq, rnd);
 
-  W_ sp;
-  if (MPFR__mpfr_sign(mpfr) <= 1) {
-    sp = MPFR__mpfr_prec(mpfr);
-  } else {
-    sp = MPFR__mpfr_prec(mpfr) | (1 << PREC_SHIFT);
-  }
-
-  RET_NNP(
-    sp,
-    MPFR__mpfr_exp(mpfr),
-    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
-
+  MPFR_RETURN1(mpfr);
 }
 
 mpfr_cmm_init_d
@@ -153,45 +131,25 @@ mpfr_cmm_init_d
   foreign "C" mpfr_init2(mpfr, prec) [];
   foreign "C" mpfr_set_d(mpfr, dbl, rnd) [];
 
-  W_ sp;
-  if (MPFR__mpfr_sign(mpfr) <= 1) {
-    sp = MPFR__mpfr_prec(mpfr);
-  } else {
-    sp = MPFR__mpfr_prec(mpfr) | (1 << PREC_SHIFT);
-  }
-
-  RET_NNP(
-    sp,
-    MPFR__mpfr_exp(mpfr),
-    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
+  MPFR_RETURN1(mpfr);
 }
 
 
 mpfr_cmm_get_d
 {
-  // arguments: R1 = rounding mode, R2 = prec * sign, R3 = exp, R4 = limbs 
+  // arguments: R1 = rounding mode, R2 = prec * sign, R3 = exp, R4 = limbs
   D_ ret;
   W_ rnd, mpfr;
-  W_ sv;
-  
+
   rnd = R1;
 
   MAYBE_GC(R4_PTR, mpfr_cmm_get_d);
-  
-  STK_CHK_GEN(SIZEOF_MPFR, R4_PTR, mpfr_cmm_get_d);
-  
-  mpfr = Sp - 1 * SIZEOF_MPFR;
-  
-  sv = R2 >> PREC_SHIFT;
-  if (sv == 0) {
-    MPFR__mpfr_sign(mpfr) = 1;
-  } else {
-    MPFR__mpfr_sign(mpfr) = -1;
-  }
 
-  MPFR__mpfr_prec(mpfr) = R2 & ~(1 << PREC_SHIFT);
-  MPFR__mpfr_exp(mpfr) = R3;
-  MPFR__mpfr_d(mpfr) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R4));
+  STK_CHK_GEN(SIZEOF_MPFR, R4_PTR, mpfr_cmm_get_d);
+
+  mpfr = Sp - 1 * SIZEOF_MPFR;
+
+  MPFR_REBUILD(R2, R3, R4, mpfr);
 
   (ret) = foreign "C" mpfr_get_d(mpfr, rnd);
 
@@ -201,7 +159,7 @@ mpfr_cmm_get_d
 
 mpfr_cmm_sgn
 { // arguments: R1 = prec * sign, R2 = exp, R3 = limbs
-  W_ ret, sv, mpfr;
+  W_ ret, mpfr;
 
   MAYBE_GC(R3_PTR, mpfr_cmm_sgn);
 
@@ -209,17 +167,7 @@ mpfr_cmm_sgn
 
   mpfr = Sp - 1 * SIZEOF_MPFR;
 
-  sv = R1 >> PREC_SHIFT;
-
-  if (sv == 0) {
-    MPFR__mpfr_sign(mpfr) = 1;
-  } else {
-    MPFR__mpfr_sign(mpfr) = -1;
-  }
-
-  MPFR__mpfr_prec(mpfr) = R1 & ~(1 << PREC_SHIFT);
-  MPFR__mpfr_exp(mpfr) = R2;
-  MPFR__mpfr_d(mpfr) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));
+  MPFR_REBUILD(R1, R2, R3, mpfr);
 
   /* TODO check for NaN? */
   (ret) = foreign "C" mpfr_sgn(mpfr);
@@ -230,11 +178,11 @@ mpfr_cmm_sgn
 }
 
 mpfr_cmm_cmp
-{ 
+{
   /* arguments: R1 = prec * sign, R2 = exp, R3 = limbs
                 R4 = prec * sign, R5 = exp, R6 = limbs
    */
-  W_ ret, err, op1, op2, s1, s2;
+  W_ ret, err, op1, op2;
 
   MAYBE_GC(R3_PTR & R6_PTR, mpfr_cmm_cmp);
 
@@ -242,26 +190,9 @@ mpfr_cmm_cmp
 
   op1 = Sp - 1 * SIZEOF_MPFR;
   op2 = Sp - 2 * SIZEOF_MPFR;
-  
-  s1 = R1 >> PREC_SHIFT;
-  if (s1 == 0) {
-    MPFR__mpfr_sign(op1) = 1;
-  } else {
-    MPFR__mpfr_sign(op1) = -1;
-  } 
-  MPFR__mpfr_prec(op1) = R1 & ~(1 << PREC_SHIFT);
-  MPFR__mpfr_exp(op1) = R2;
-  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));
 
-  s2 = R4 >> PREC_SHIFT;
-  if (s2 == 0) {
-    MPFR__mpfr_sign(op2) = 1;
-  } else {
-    MPFR__mpfr_sign(op2) = -1;
-  } 
-  MPFR__mpfr_prec(op2) = R4 & ~(1 << PREC_SHIFT);
-  MPFR__mpfr_exp(op2) = R5;
-  MPFR__mpfr_d(op2) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R6));
+	MPFR_REBUILD(R1, R2, R3, op1);
+	MPFR_REBUILD(R4, R5, R6, op2);
 
   foreign "C" mpfr_clear_erangeflag();
   (ret) = foreign "C" mpfr_cmp(op1,op2);
@@ -282,7 +213,6 @@ mpfr_cmm_get_str
   // arguments: R1 = rounding mode, R2 = output number base, R3 = prec * sign, R4 = exp, R5 = limbs
   W_ ret;
   W_ rnd, base, mpfr;
-  W_ sv;
 
   rnd = R1;
   base = R2;
@@ -293,24 +223,13 @@ mpfr_cmm_get_str
 
   mpfr = Sp - 1 * SIZEOF_MPFR;
 
-  sv = R2 >> PREC_SHIFT;
-  if (sv == 0) {
-    MPFR__mpfr_sign(mpfr) = 1;
-  } else {
-    MPFR__mpfr_sign(mpfr) = -1;
-  }
+	MPFR_REBUILD(R3, R4, R5, mpfr)
 
-  MPFR__mpfr_prec(mpfr) = R2 & ~(1 << PREC_SHIFT);
-  MPFR__mpfr_exp(mpfr) = R4;
-  MPFR__mpfr_d(mpfr) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R5));
-  
   W_ dec;
   dec = Sp - 1 * SIZEOF_MPFR - WDS(1);
 
   (ret) = foreign "C" mpfr_get_str(0, dec, base, 0, mpfr, rnd);
-  
-  foreign "C" printf("out: %s\n", ret);
-  
+
   RET_NP(W_[dec], ret - SIZEOF_StgArrWords);
 }
 
@@ -318,29 +237,13 @@ mpfr_cmm_get_str
 #define MPFR_COMPARISON(name,cmp)                             \
 name                                                          \
 {                                                             \
-  W_ ret, op1, op2, s1, s2;                                   \
+  W_ ret, op1, op2;                                           \
   MAYBE_GC(R3_PTR & R6_PTR, name);                            \
   STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R5_PTR, name);          \
   op1 = Sp - 1 * SIZEOF_MPFR;                                 \
   op2 = Sp - 2 * SIZEOF_MPFR;                                 \
-  s1 = R1 >> PREC_SHIFT;                                      \
-  if (s1 == 0) {                                              \
-    MPFR__mpfr_sign(op1) = 1;                                 \
-  } else {                                                    \
-    MPFR__mpfr_sign(op1) = -1;                                \
-  }                                                           \
-  MPFR__mpfr_prec(op1) = R1 & ~(1 << PREC_SHIFT);             \
-  MPFR__mpfr_exp(op1) = R2;                                   \
-  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R3));      \
-  s2 = R4 >> PREC_SHIFT;                                      \
-  if (s2 == 0) {                                              \
-    MPFR__mpfr_sign(op2) = 1;                                 \
-  } else {                                                    \
-    MPFR__mpfr_sign(op2) = -1;                                \
-  }                                                           \
-  MPFR__mpfr_prec(op2) = R4 & ~(1 << PREC_SHIFT);             \
-  MPFR__mpfr_exp(op2) = R5;                                   \
-  MPFR__mpfr_d(op2) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R6));      \
+	MPFR_REBUILD(R1, R2, R3, op1);                              \
+  MPFR_REBUILD(R4, R5, R6, op2);                              \
   (ret) = foreign "C" cmp(op1, op2);                          \
   R1 = ret;                                                   \
   jump %ENTRY_CODE(Sp(0));                                    \
@@ -357,7 +260,7 @@ MPFR_COMPARISON(mpfr_cmm_unordered_p, mpfr_unordered_p)
 #define MPFR_TAKE2_RET1(name,mpfr_fun)                            \
 name                                                              \
 {                                                                 \
-  W_ rnd, op1, op2, ret, s1, s2, prec, ps3;                       \
+  W_ rnd, op1, op2, ret, prec, ps3;                               \
                                                                   \
   rnd = R1;                                                       \
   prec = R5 & ~(1 << PREC_SHIFT);                                 \
@@ -366,47 +269,17 @@ name                                                              \
                                                                   \
   STK_CHK_GEN(3 * SIZEOF_MPFR, R4_PTR & R7_PTR, name);            \
                                                                   \
-  s1 = R2 >> PREC_SHIFT;                                          \
-  s2 = R5 >> PREC_SHIFT;                                          \
-                                                                  \
   op1 = Sp - 1 * SIZEOF_MPFR;                                     \
   op2 = Sp - 2 * SIZEOF_MPFR;                                     \
   ret = Sp - 3 * SIZEOF_MPFR;                                     \
                                                                   \
-  if (s1 == 0) {                                                  \
-    MPFR__mpfr_sign(op1) = 1;                                     \
-  } else {                                                        \
-    MPFR__mpfr_sign(op1) = -1;                                    \
-  }                                                               \
+  MPFR_REBUILD(R2, R3, R4, op1);                                  \
+  MPFR_REBUILD(R5, R6, R7, op2);                                  \
                                                                   \
-  MPFR__mpfr_prec(op1) = R2 & ~(1 << PREC_SHIFT);                 \
-  MPFR__mpfr_exp(op1) = R3;                                       \
-  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R4));          \
-                                                                  \
-  if (s2 == 0) {                                                  \
-    MPFR__mpfr_sign(op2) = 1;                                     \
-  } else {                                                        \
-    MPFR__mpfr_sign(op2) = -1;                                    \
-  }                                                               \
-                                                                  \
-  MPFR__mpfr_prec(op2) = prec;                                    \
-  MPFR__mpfr_exp(op2) = R6;                                       \
-  MPFR__mpfr_d(op2) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R7));          \
-                                                                  \
-  foreign "C" mpfr_init(ret, prec);                               \
+  foreign "C" mpfr_init2(ret, prec);                              \
   foreign "C" mpfr_fun(ret, op1, op2, rnd);                       \
                                                                   \
-  W_ sp;                                                          \
-  if (MPFR__mpfr_sign(ret) <= 1) {                                \
-    sp = MPFR__mpfr_prec(ret);                                    \
-  } else {                                                        \
-    sp = MPFR__mpfr_prec(ret) | (1 << PREC_SHIFT);                \
-  }                                                               \
-                                                                  \
-  RET_NNP(                                                        \
-    sp,                                                           \
-    MPFR__mpfr_exp(ret),                                          \
-    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(ret)) - SIZEOF_StgArrWords);   \
+  MPFR_RETURN1(ret);                                              \
 }
 
 MPFR_TAKE2_RET1(mpfr_cmm_add, mpfr_add)
@@ -420,44 +293,24 @@ MPFR_TAKE2_RET1(mpfr_cmm_atan2, mpfr_atan2)
 #define MPFR_TAKE1_RET1(name,mpfr_fun)                            \
 name                                                              \
 {                                                                 \
-  W_ rnd, op1, ret, s1, prec, ps3;                                \
+  W_ rnd, prec, op1, ret;                                         \
                                                                   \
   rnd = R1;                                                       \
-  prec = R5 & ~(1 << PREC_SHIFT);                                 \
+  prec = R2 & ~(1 << PREC_SHIFT);                                 \
                                                                   \
   MAYBE_GC(R4_PTR, name);                                         \
                                                                   \
   STK_CHK_GEN(2 * SIZEOF_MPFR, R4_PTR, name);                     \
                                                                   \
-  s1 = R2 >> PREC_SHIFT;                                          \
-                                                                  \
   op1 = Sp - 1 * SIZEOF_MPFR;                                     \
   ret = Sp - 2 * SIZEOF_MPFR;                                     \
                                                                   \
-  if (s1 == 0) {                                                  \
-    MPFR__mpfr_sign(op1) = 1;                                     \
-  } else {                                                        \
-    MPFR__mpfr_sign(op1) = -1;                                    \
-  }                                                               \
+  MPFR_REBUILD(R2, R3, R4, op1);                                  \
                                                                   \
-  MPFR__mpfr_prec(op1) = R2 & ~(1 << PREC_SHIFT);                 \
-  MPFR__mpfr_exp(op1) = R3;                                       \
-  MPFR__mpfr_d(op1) = MPFR_MANGLE_PTR(BYTE_ARR_CTS(R4));          \
-                                                                  \
-  foreign "C" mpfr_init(ret, prec);                               \
+  foreign "C" mpfr_init2(ret, prec);                              \
   foreign "C" mpfr_fun(ret, op1, rnd);                            \
                                                                   \
-  W_ sp;                                                          \
-  if (MPFR__mpfr_sign(ret) <= 1) {                                \
-    sp = MPFR__mpfr_prec(ret);                                    \
-  } else {                                                        \
-    sp = MPFR__mpfr_prec(ret) | (1 << PREC_SHIFT);                \
-  }                                                               \
-                                                                  \
-  RET_NNP(                                                        \
-    sp,                                                           \
-    MPFR__mpfr_exp(ret),                                          \
-    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(ret)) - SIZEOF_StgArrWords);   \
+  MPFR_RETURN1(ret);                                              \
 }
 
 MPFR_TAKE1_RET1(mpfr_cmm_log,  mpfr_log)
@@ -486,16 +339,8 @@ name                                                             \
   mpfr = Sp - 1 * SIZEOF_MPFR;                                   \
   foreign "C" mpfr_init2(mpfr, prec) [];                         \
   foreign "C" mpfr_constant(mpfr, rnd) [];                       \
-  W_ sp;                                                         \
-  if (MPFR__mpfr_sign(mpfr) <= 1) {                              \
-    sp = MPFR__mpfr_prec(mpfr);                                  \
-  } else {                                                       \
-    sp = MPFR__mpfr_prec(mpfr) | (1 << PREC_SHIFT);              \
-  }                                                              \
-  RET_NNP(                                                       \
-    sp,                                                          \
-    MPFR__mpfr_exp(mpfr),                                        \
-    MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords); \
+                                                                 \
+  MPFR_RETURN1(mpfr);                                            \
 }
 
 MPFR_CONSTANT(mpfr_cmm_const_pi, mpfr_const_pi)

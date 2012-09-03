@@ -73,19 +73,19 @@ retagReifiedPrecision :: (Proxy s -> a) -> proxy (ReifiedPrecision s) -> a
 retagReifiedPrecision f _ = f Proxy
 {-# INLINE retagReifiedPrecision #-}
 
-instance ReifiesNum s => Precision (ReifiedPrecision s) where
-    precision = retagReifiedPrecision reflectNum
+instance Reifies s Int => Precision (ReifiedPrecision s) where
+    precision = retagReifiedPrecision reflect
 
 reifyPrecision :: Int -> (forall p. Precision p => Proxy p -> a) -> a
-reifyPrecision m f = reifyIntegral m (go f)
+reifyPrecision m f = reify m (go f)
   where
-    go :: ReifiesNum p => (Proxy (ReifiedPrecision p) -> a) -> proxy p -> a 
+    go :: Reifies p Int => (Proxy (ReifiedPrecision p) -> a) -> proxy p -> a
     go g _ = g Proxy
 {-# INLINE reifyPrecision #-}
 
-floatPrecision :: RealFloat a => proxy a -> Int
+floatPrecision :: RealFloat a => p a -> Int
 floatPrecision p = fromIntegral (floatDigits (proxyArg p))
-  where 
-    proxyArg :: p a -> a 
+  where
+    proxyArg :: p a -> a
     proxyArg _ = undefined
 {-# INLINE floatPrecision #-}
