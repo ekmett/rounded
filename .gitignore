@@ -2,4 +2,7 @@ _darcs
 dist
 Main.hi
 Main.o
-doc
+Makefile
+config.log
+config.status
+docs
