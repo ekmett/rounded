@@ -12,7 +12,8 @@ build-type:         Custom
 cabal-version:      >= 1.6
 extra-source-files: cbits/mkMpfrDerivedConstants.c, cbits/alloc.c
 description:
-    Numeric instances for MPFR that use the \"Implicit Configurations\" from 
+    This package provides numeric instances for MPFR that use
+    \"Implicit Configurations\" from
     <http://www.cs.rutgers.edu/~ccshan/prepose/prepose.pdf>
     to choose a 'Rounding' and 'Precision'. For those that do not want to
     use reflection, explicit instances are provided for common precisions
@@ -26,8 +27,7 @@ source-repository head
   location: git://github.com/ekmett/rounded.git
 
 library
-  exposed-modules:
-    Numeric.Rounded
+  exposed-modules: Numeric.Rounded
 
   other-modules:
     Numeric.Rounded.Rounding
@@ -46,4 +46,3 @@ library
   c-sources: cbits/mpfr-wrappers.cmm
   extra-libraries: mpfr
   include-dirs: dist/include
-
