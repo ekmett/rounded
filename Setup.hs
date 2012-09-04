@@ -86,6 +86,7 @@ mpfrHooks = autoconfUserHooks
   mpfrPreConf args flags = do
     distDir <- getDist
     createDirectory' $ distDir </> "include"
+    createDirectory' $ distDir </> "lib"
     createDirectory' $ distDir </> "tmp"
     return emptyHookedBuildInfo
 

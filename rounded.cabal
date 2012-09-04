@@ -2,6 +2,7 @@ name:               rounded
 version:            0.0.1
 synopsis:           Correctly-rounded arbitrary-precision floating point numbers using MPFR
 homepage:           http://github.com/ekmett/rounded
+bug-reports:        http://github.com/ekmett/rounded/issues
 license:            BSD3
 license-file:       LICENSE
 author:             Edward Kmett
@@ -42,13 +43,8 @@ library
     template-haskell >= 2.4   && < 2.9
 
   ghc-options: -Wall -Werror
-
-  c-sources:
-    cbits/mpfr-wrappers.cmm
-
+  c-sources: cbits/mpfr-wrappers.cmm
   extra-libraries: mpfr
-
-  extra-lib-dirs: /Users/ekmett/haskell/rounded/dist/lib/
-
+  extra-lib-dirs: dist/lib/
   include-dirs: dist/include
 
