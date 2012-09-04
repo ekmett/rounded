@@ -21,6 +21,7 @@ import Control.Monad
 
 import Data.List
 import Data.Monoid
+import Data.Maybe
 
 -----------------------------------------------------------------
 -- Horrible mess of semi-general code
@@ -76,11 +77,23 @@ mpfrHooks :: UserHooks
 mpfrHooks = autoconfUserHooks
     { preConf   = mpfrPreConf
     , postConf  = mpfrPostConf
+    , confHook  = mpfrConfHook
     , preBuild  = mpfrPreBuild
     , postBuild = mpfrPostBuild
     , postClean = mpfrPostClean
     }
   where
+  mpfrConfHook (pkg, pbi) flags = do
+    distDir <- getDist
+    lbi <- confHook autoconfUserHooks (pkg, pbi) flags
+    let lpd = localPkgDescr lbi
+        lib = fromJust (library lpd)
+        libbi = libBuildInfo lib
+        libbi' = libbi { extraLibDirs = (distDir </> "lib") : extraLibDirs libbi }
+        lib' = lib { libBuildInfo = libbi' }
+        lpd' = lpd { library = Just lib' }
+    return lbi { localPkgDescr = lpd' }
+ 
   -- We need to create the "include" directory at some point, but we're doing it this early to make cabal
   -- shut up about it not being present.
   mpfrPreConf args flags = do

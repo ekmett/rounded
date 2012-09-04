@@ -45,6 +45,5 @@ library
   ghc-options: -Wall -Werror
   c-sources: cbits/mpfr-wrappers.cmm
   extra-libraries: mpfr
-  extra-lib-dirs: dist/lib/
   include-dirs: dist/include
 
