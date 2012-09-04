@@ -3,7 +3,7 @@ version:            0.0.1
 synopsis:           Correctly-rounded arbitrary-precision floating point numbers using MPFR
 homepage:           http://github.com/ekmett/rounded
 bug-reports:        http://github.com/ekmett/rounded/issues
-license:            BSD3
+license:            LGPL
 license-file:       LICENSE
 author:             Edward Kmett
 maintainer:         ekmett@gmail.com
