@@ -35,7 +35,6 @@ module Numeric.Rounded
     , kEuler
     , kCatalan
     -- ** Random stuff (TODO: sort this out)
-    , toString
     ) where
 
 import Data.Proxy
@@ -50,6 +49,7 @@ import Numeric.Rounded.Precision
 import Control.Parallel()
 import Numeric.Rounded.Rounding
 import System.IO.Unsafe()
+import Numeric
 
 type CSignPrec#  = Int#
 type CPrecision# = Int#
@@ -63,7 +63,7 @@ prec_bit | b63 == 0 = b31
         b31 = bit 31
 
 data Rounded r p = Rounded
-  { roundedSignPrec :: CSignPrec# -- Sign# * Precision#
+  { roundedSignPrec :: CSignPrec# -- Sign# << 64/32 | Precision#
   , roundedExp      :: CExp#
   , roundedLimbs    :: ByteArray#
   }
@@ -71,35 +71,10 @@ data Rounded r p = Rounded
 -- We could use this in a rewrite rule for fast conversions to Double...
 -- foreign import prim "mpfr_cmm_get_d"       mpfr_cmm_get_d :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double#
 
-foreign import prim "mpfr_cmm_get_str"     mpfr_cmm_get_str :: CRounding# -> Int# -> CSignPrec# -> CExp# -> ByteArray# -> (# Int#, ByteArray# #)
+-- foreign import prim "mpfr_cmm_get_str"     mpfr_cmm_get_str :: CRounding# -> Int# -> CSignPrec# -> CExp# -> ByteArray# -> (# Int#, ByteArray# #)
 
-toString# :: ByteArray# -> String
-toString# ba# = go 0# where
-  go i | i <# (sizeofByteArray# ba# -# 1#) = C# (unsafeCoerce# (indexWord8Array# ba# i)) : go (i +# 1#)
-       | otherwise = []
-
--- This whole thing is a bit of a hack attempting to replicate the hack that is formatRealFloat, but it should do for now
-toString :: forall r p. Rounding r => Int -> Rounded r p -> String
-toString (I# base) (Rounded s e l) = 
-  -- FIXME: Less hackish would be to use isNaN or infinity instead of breaking up the string...
-  case buf of
-    '-':'@':_ -> "-Infinity"
-    '-':ds    -> '-' : withExponent ex ds
-    '@':'I':_ -> "Infinity"
-    '@':'N':_ -> "NaN"
-    ds        -> withExponent ex ds
-  where
-  withExponent _ [] = ""
-  withExponent (-1) ds = "0." ++ ds
-  withExponent q dds@(d:ds) | q < -1 = d : '.' : ds ++ "e" ++ show q
-                            | q > 6  = d : '.' : ds ++ "e" ++ show (q - 1)
-                            | otherwise = let (x, y) = splitAt q dds in x ++ "." ++ y
-
-  (ex, buf) = case mpfr_cmm_get_str (mode# (Proxy::Proxy r)) base s e l of
-    (# e#, buf# #) -> (I# e#, toString# buf#)
-
-instance Rounding r => Show (Rounded r p) where
-  showsPrec _ = showString . toString 10 -- showsPrec d (D# (mpfr_cmm_get_d (mode# (Proxy::Proxy r)) s e l))
+instance (Rounding r, Precision p) => Show (Rounded r p) where
+  showsPrec _ = showFloat
 
 -- N.B.: similar to Unary, assumes that output precision is same as precsion of _second_ operand
 type Binary
@@ -278,6 +253,49 @@ instance (Rounding r, Precision p) => Floating (Rounded r p) where
   atanh = unary mpfrArcTanh#
   acosh = unary mpfrArcCosh#
 
+instance (Rounding r, Precision p) => Real (Rounded r p) where
+  toRational = undefined
+
+instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
+  properFraction = undefined
+
+
+foreign import prim "mpfr_cmm_get_z_2exp" mpfrDecode# 
+  :: CSignPrec# -> CExp# -> ByteArray# -> (# CExp#, Int#, ByteArray# #)
+
+foreign import prim "mpfr_cmm_init_z_2exp" mpfrEncode#
+  :: CRounding# -> CPrecision# -> CExp# -> Int# -> ByteArray# -> (# CSignPrec#, CExp#, ByteArray# #)
+
+type Test = CSignPrec# -> CExp# -> ByteArray# -> Int#
+
+tst :: (CSignPrec# -> CExp# -> ByteArray# -> Int#) -> Rounded r p -> Bool
+tst f (Rounded s e l) = I# (f s e l) /= 0
+
+foreign import prim "mpfr_cmm_nan_p"  mpfrIsNaN# :: Test
+foreign import prim "mpfr_cmm_inf_p"  mpfrIsInf# :: Test
+foreign import prim "mpfr_cmm_zero_p" mpfrIsZero# :: Test
+
+foreign import prim "mpfr_cmm_atan2" mpfrArcTan2# :: Binary
+
+-- FIXME: encodeFloat appears broken, but I haven't figured out how yet
+instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
+  floatRadix  _ = 2
+  floatDigits _r = I# (prec# (Proxy::Proxy p))
+  floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32)) -- FIXME: this should do for now, but the real ones can change...
+  decodeFloat (Rounded sp e l) = case mpfrDecode# sp e l of (# i, s, d #) -> (J# s d, I# i)
+  encodeFloat (S# i)   (I# e) = r where
+    r = case int2Integer# i of 
+          (# s, d #) -> case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of 
+            (# s', e', l #) -> Rounded s' e' l
+  encodeFloat (J# s d) (I# e) = r where
+    r = case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of
+          (# s', e', l #) -> Rounded s' e' l
+  isNaN = tst mpfrIsNaN#
+  isInfinite = tst mpfrIsInf#
+  isDenormalized _ = False
+  isNegativeZero r@(Rounded s _ _) = tst mpfrIsZero# r && I# s .&. prec_bit /= 0
+  isIEEE _ = True -- is this a lie? it mostly behaves like an IEEE float, despite being much bigger
+  atan2 = binary mpfrArcTan2#
 
 foreign import prim "mpfr_cmm_const_log2"    mpfrConstLog2# :: Constant
 foreign import prim "mpfr_cmm_const_euler"   mpfrConstEuler# :: Constant
@@ -292,7 +310,3 @@ kEuler = constant mpfrConstEuler#
 -- | 0.915...
 kCatalan :: (Rounding r, Precision p) => Rounded r p
 kCatalan = constant mpfrConstCatalan#
-
---foreign import prim "mpfr_cmm_atan2" mpfrArcTan2# :: Binary
---instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
---  atan2 = binary mpfrArcTan2#

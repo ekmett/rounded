@@ -127,6 +127,36 @@ mpfr_cmm_init_d
   MPFR_RETURN1(mpfr);
 }
 
+mpfr_cmm_init_z_2exp
+{
+  /* arguments: R1 = rounding, R2 = precision, R3 = exponent,
+                R4 = mpz size, R5 = mpz limbs */
+  W_ rnd, prec, exp, s, d;
+  W_ mpfr, mpz;
+
+  rnd = R1;
+  prec = R2;
+  exp = R3;
+  s = R4;
+  d = R5;
+
+  MAYBE_GC(R5_PTR, mpfr_cmm_init_z_2exp);
+
+  STK_CHK_GEN(SIZEOF_MPFR + SIZEOF_MP_INT, R5_PTR, mpfr_cmm_init_z_2exp);
+
+  mpfr = Sp - SIZEOF_MPFR;
+  mpz  = Sp - SIZEOF_MPFR - SIZEOF_MP_INT;
+
+  MP_INT__mp_alloc(mpz) = W_TO_INT(BYTE_ARR_WDS(d));
+  MP_INT__mp_size(mpz)  = s;
+  MP_INT__mp_d(mpz)     = d;
+
+  foreign "C" mpfr_init2(mpfr, prec);
+  foreign "C" mpfr_set_z_2exp(mpfr, mpz, exp, rnd);
+
+  MPFR_RETURN1(mpfr);
+}
+
 
 mpfr_cmm_get_d
 {
@@ -148,6 +178,33 @@ mpfr_cmm_get_d
 
   D1 = ret;
   jump %ENTRY_CODE(Sp(0));
+}
+
+mpfr_cmm_get_z_2exp
+{
+  // arguments: R1 = prec * sign, R2 = exp, R3 = limbs
+  W_ exp;
+  W_ mpz, mpfr;
+
+  MAYBE_GC(R3_PTR, mpfr_cmm_get_z_2exp);
+
+  STK_CHK_GEN(SIZEOF_MP_INT + SIZEOF_MPFR, R3_PTR, mpfr_cmm_get_z_2exp);
+
+  mpz = Sp - 1 * SIZEOF_MP_INT;
+  mpfr = Sp - 1 * SIZEOF_MP_INT - 1 * SIZEOF_MPFR;
+
+  MPFR_REBUILD(R1, R2, R3, mpfr);
+
+  foreign "C" __gmpz_init(mpz "ptr") [];
+
+  // Since we're immutable, we could really just reuse the limbs, but I haven't figured
+  // out how to do that reliably yet.
+  (exp) = foreign "C" mpfr_get_z_2exp(mpz, mpfr);
+  
+  RET_NNP(
+    exp,
+    TO_W_(MP_INT__mp_size(mpz)),
+    MP_INT__mp_d(mpz) - SIZEOF_StgArrWords);
 }
 
 mpfr_cmm_sgn
@@ -250,6 +307,23 @@ MPFR_COMPARISON(mpfr_cmm_less_p, mpfr_less_p)
 MPFR_COMPARISON(mpfr_cmm_lessequal_p, mpfr_lessequal_p)
 MPFR_COMPARISON(mpfr_cmm_lessgreater_p, mpfr_lessgreater_p)
 MPFR_COMPARISON(mpfr_cmm_unordered_p, mpfr_unordered_p)
+
+#define MPFR_TEST(name,tst)                 \
+name                                        \
+{                                           \
+  W_ ret, op;                               \
+  MAYBE_GC(R3_PTR, name);                   \
+  STK_CHK_GEN(SIZEOF_MPFR, R3_PTR, name);   \
+  op = Sp - 1 * SIZEOF_MPFR;                \
+  MPFR_REBUILD(R1, R2, R3, op);             \
+  (ret) = foreign "C" tst(op);              \
+  R1 = ret;                                 \
+  jump %ENTRY_CODE(Sp(0));                  \
+}                                           \
+
+MPFR_TEST(mpfr_cmm_nan_p, mpfr_nan_p)
+MPFR_TEST(mpfr_cmm_inf_p, mpfr_inf_p)
+MPFR_TEST(mpfr_cmm_zero_p, mpfr_zero_p)
 
 #define MPFR_TAKE2_RET1(name,mpfr_fun)                            \
 name                                                              \
