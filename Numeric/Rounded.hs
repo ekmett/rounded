@@ -254,7 +254,10 @@ instance (Rounding r, Precision p) => Floating (Rounded r p) where
   acosh = unary mpfrArcCosh#
 
 instance (Rounding r, Precision p) => Real (Rounded r p) where
-  toRational = undefined
+  toRational r = if e > 0
+                   then fromIntegral (s `shiftL` e)
+                   else s % (1 `shiftL` negate e)
+    where (s, e) = decodeFloat r
 
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
   properFraction = undefined
