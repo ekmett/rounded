@@ -10,7 +10,6 @@ maintainer:         Edward A. Kmett <ekmett@gmail.com>
 category:           Numeric, Math
 build-type:         Custom
 cabal-version:      >= 1.9.2
-extra-source-files: cbits/mkMpfrDerivedConstants.c, cbits/alloc.c
 description:
     This package provides numeric instances for MPFR that use
     \"Implicit Configurations\" from
@@ -23,6 +22,54 @@ description:
     >>> :set -XDataKinds
     >>> exp pi :: Rounded TowardZero 512
     23.140692632779269005729086367948547380266106242600211993445046409524342350690452783516971997067549219675952704801087773144428044414693835844717445879609842
+-- extras
+extra-source-files:
+    .travis.yml cbits/mkMpfrDerivedConstants.c cbits/alloc.c
+
+-- zmacros and included c files
+extra-source-files:
+    mpfr/src/jyn_asympt.c mpfr/src/round_raw_generic.c
+
+-- MPFR files
+extra-source-files:
+    mpfr/acinclude.m4 mpfr/aclocal.m4 mpfr/AUTHORS mpfr/BUGS mpfr/ChangeLog mpfr/compile mpfr/config.guess
+    mpfr/config.sub mpfr/configure mpfr/configure.ac mpfr/COPYING mpfr/COPYING.LESSER mpfr/depcomp mpfr/doc/FAQ.html
+    mpfr/doc/fdl.texi mpfr/doc/Makefile.am mpfr/doc/Makefile.in mpfr/doc/mpfr.info mpfr/doc/mpfr.texi mpfr/doc/texinfo.tex mpfr/examples/divworst.c
+    mpfr/examples/ReadMe mpfr/examples/rndo-add.c mpfr/examples/sample.c mpfr/examples/version.c mpfr/INSTALL mpfr/install-sh mpfr/ltmain.sh
+    mpfr/m4/libtool.m4 mpfr/m4/ltoptions.m4 mpfr/m4/ltsugar.m4 mpfr/m4/ltversion.m4 mpfr/m4/lt~obsolete.m4 mpfr/m4/size_max.m4 mpfr/Makefile.am
+    mpfr/Makefile.in mpfr/missing mpfr/NEWS mpfr/PATCHES mpfr/README mpfr/src/amd/amdfam10/mparam.h mpfr/src/amd/athlon/mparam.h
+    mpfr/src/amd/k8/mparam.h mpfr/src/arm/mparam.h mpfr/src/fits_s.h mpfr/src/fits_u.h mpfr/src/gen_inverse.h mpfr/src/generic/mparam.h
+    mpfr/src/hppa/mparam.h mpfr/src/ia64/mparam.h mpfr/src/ieee_floats.h mpfr/src/Makefile.am mpfr/src/Makefile.in mpfr/src/mparam_h.in
+    mpfr/src/mpf2mpfr.h mpfr/src/mpfr-gmp.h mpfr/src/mpfr-impl.h mpfr/src/mpfr-intmax.h mpfr/src/mpfr-longlong.h mpfr/src/mpfr-thread.h
+    mpfr/src/mpfr.h mpfr/src/powerpc32/mparam.h mpfr/src/powerpc64/mparam.h mpfr/src/sparc64/mparam.h mpfr/src/x86/core2/mparam.h
+    mpfr/src/x86/mparam.h mpfr/src/x86_64/core2/mparam.h mpfr/src/x86_64/pentium4/mparam.h mpfr/tests/cmp_str.c mpfr/tests/inp_str.data
+    mpfr/tests/Makefile.am mpfr/tests/Makefile.in mpfr/tests/memory.c mpfr/tests/mpf_compat.c mpfr/tests/mpf_compat.h mpfr/tests/mpfr-test.h
+    mpfr/tests/mpfr_compat.c mpfr/tests/random2.c mpfr/tests/reuse.c mpfr/tests/rnd_mode.c mpfr/tests/tabs.c mpfr/tests/tacos.c
+    mpfr/tests/tacosh.c mpfr/tests/tadd.c mpfr/tests/tadd1sp.c mpfr/tests/tadd_d.c mpfr/tests/tadd_ui.c mpfr/tests/tagm.c mpfr/tests/tai.c
+    mpfr/tests/tasin.c mpfr/tests/tasinh.c mpfr/tests/tatan.c mpfr/tests/tatanh.c mpfr/tests/taway.c mpfr/tests/tbuildopt.c mpfr/tests/tcan_round.c
+    mpfr/tests/tcbrt.c mpfr/tests/tcheck.c mpfr/tests/tcmp.c mpfr/tests/tcmp2.c mpfr/tests/tcmp_d.c mpfr/tests/tcmp_ld.c mpfr/tests/tcmp_ui.c
+    mpfr/tests/tcmpabs.c mpfr/tests/tcomparisons.c mpfr/tests/tconst_catalan.c mpfr/tests/tconst_euler.c mpfr/tests/tconst_log2.c mpfr/tests/tconst_pi.c
+    mpfr/tests/tcopysign.c mpfr/tests/tcos.c mpfr/tests/tcosh.c mpfr/tests/tcot.c mpfr/tests/tcoth.c mpfr/tests/tcsc.c mpfr/tests/tcsch.c
+    mpfr/tests/td_div.c mpfr/tests/td_sub.c mpfr/tests/tdigamma.c mpfr/tests/tdim.c mpfr/tests/tdiv.c mpfr/tests/tdiv_d.c mpfr/tests/tdiv_ui.c
+    mpfr/tests/teint.c mpfr/tests/teq.c mpfr/tests/terf.c mpfr/tests/tests.c mpfr/tests/texceptions.c mpfr/tests/texp.c mpfr/tests/texp10.c
+    mpfr/tests/texp2.c mpfr/tests/texpm1.c mpfr/tests/tfactorial.c mpfr/tests/tfits.c mpfr/tests/tfma.c mpfr/tests/tfmod.c mpfr/tests/tfms.c
+    mpfr/tests/tfprintf.c mpfr/tests/tfrac.c mpfr/tests/tfrexp.c mpfr/tests/tgamma.c mpfr/tests/tgeneric.c mpfr/tests/tgeneric_ui.c mpfr/tests/tget_d.c
+    mpfr/tests/tget_d_2exp.c mpfr/tests/tget_f.c mpfr/tests/tget_flt.c mpfr/tests/tget_ld_2exp.c mpfr/tests/tget_set_d64.c mpfr/tests/tget_sj.c
+    mpfr/tests/tget_str.c mpfr/tests/tget_z.c mpfr/tests/tgmpop.c mpfr/tests/tgrandom.c mpfr/tests/thyperbolic.c mpfr/tests/thypot.c mpfr/tests/tinits.c
+    mpfr/tests/tinp_str.c mpfr/tests/tinternals.c mpfr/tests/tisnan.c mpfr/tests/tisqrt.c mpfr/tests/tj0.c mpfr/tests/tj1.c mpfr/tests/tjn.c mpfr/tests/tl2b.c
+    mpfr/tests/tlgamma.c mpfr/tests/tli2.c mpfr/tests/tlngamma.c mpfr/tests/tlog.c mpfr/tests/tlog10.c mpfr/tests/tlog1p.c mpfr/tests/tlog2.c
+    mpfr/tests/tmin_prec.c mpfr/tests/tminmax.c mpfr/tests/tmodf.c mpfr/tests/tmul.c mpfr/tests/tmul.dat mpfr/tests/tmul_2exp.c mpfr/tests/tmul_d.c
+    mpfr/tests/tmul_ui.c mpfr/tests/tnext.c mpfr/tests/tout_str.c mpfr/tests/toutimpl.c mpfr/tests/tpow.c mpfr/tests/tpow3.c mpfr/tests/tpow_all.c
+    mpfr/tests/tpow_z.c mpfr/tests/tprintf.c mpfr/tests/trandom.c mpfr/tests/trec_sqrt.c mpfr/tests/tremquo.c mpfr/tests/trint.c mpfr/tests/troot.c
+    mpfr/tests/tround_prec.c mpfr/tests/tsec.c mpfr/tests/tsech.c mpfr/tests/tset.c mpfr/tests/tset_d.c mpfr/tests/tset_exp.c mpfr/tests/tset_f.c
+    mpfr/tests/tset_ld.c mpfr/tests/tset_q.c mpfr/tests/tset_si.c mpfr/tests/tset_sj.c mpfr/tests/tset_str.c mpfr/tests/tset_z.c mpfr/tests/tset_z_exp.c
+    mpfr/tests/tsgn.c mpfr/tests/tsi_op.c mpfr/tests/tsin.c mpfr/tests/tsin_cos.c mpfr/tests/tsinh.c mpfr/tests/tsinh_cosh.c mpfr/tests/tsprintf.c
+    mpfr/tests/tsqr.c mpfr/tests/tsqrt.c mpfr/tests/tsqrt_ui.c mpfr/tests/tstckintc.c mpfr/tests/tstdint.c mpfr/tests/tstrtofr.c mpfr/tests/tsub.c
+    mpfr/tests/tsub1sp.c mpfr/tests/tsub_d.c mpfr/tests/tsub_ui.c mpfr/tests/tsubnormal.c mpfr/tests/tsum.c mpfr/tests/tswap.c mpfr/tests/ttan.c
+    mpfr/tests/ttanh.c mpfr/tests/ttrunc.c mpfr/tests/tui_div.c mpfr/tests/tui_pow.c mpfr/tests/tui_sub.c mpfr/tests/turandom.c mpfr/tests/tvalist.c
+    mpfr/tests/tversion.c mpfr/tests/ty0.c mpfr/tests/ty1.c mpfr/tests/tyn.c mpfr/tests/tzeta.c mpfr/tests/tzeta_ui.c mpfr/TODO
+    mpfr/tools/ck-copyright-notice mpfr/tools/ck-version-info mpfr/tools/get_patches.sh mpfr/tune/bidimensional_sample.c mpfr/tune/Makefile.am
+    mpfr/tune/Makefile.in mpfr/tune/speed.c mpfr/tune/tuneup.c mpfr/VERSION
 
 source-repository head
   type: git
@@ -45,7 +92,40 @@ library
     template-haskell >= 2.4   && < 2.9
 
   ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
-  c-sources:       cbits/mpfr-wrappers.cmm
-  extra-libraries: mpfr
-  include-dirs:    dist/include
+
+  include-dirs:    dist/include mpfr/src
   hs-source-dirs:  src
+  c-sources:
+    cbits/mpfr-wrappers.cmm
+    mpfr/src/abort_prec_max.c mpfr/src/acos.c mpfr/src/acosh.c mpfr/src/add.c mpfr/src/add1.c mpfr/src/add1sp.c mpfr/src/add_d.c
+    mpfr/src/add_ui.c mpfr/src/agm.c mpfr/src/ai.c mpfr/src/asin.c mpfr/src/asinh.c mpfr/src/atan.c mpfr/src/atan2.c mpfr/src/atanh.c
+    mpfr/src/bernoulli.c mpfr/src/buildopt.c mpfr/src/cache.c mpfr/src/cbrt.c mpfr/src/check.c mpfr/src/clear.c mpfr/src/clear_free.c
+    mpfr/src/clears.c mpfr/src/cmp.c mpfr/src/cmp2.c mpfr/src/cmp_abs.c mpfr/src/cmp_d.c mpfr/src/cmp_ld.c mpfr/src/cmp_si.c
+    mpfr/src/cmp_ui.c mpfr/src/comparisons.c mpfr/src/const_catalan.c mpfr/src/const_euler.c mpfr/src/const_log2.c mpfr/src/const_pi.c
+    mpfr/src/constant.c mpfr/src/copysign.c mpfr/src/cos.c mpfr/src/cosh.c mpfr/src/cot.c mpfr/src/coth.c mpfr/src/csc.c
+    mpfr/src/csch.c mpfr/src/d_div.c mpfr/src/d_sub.c mpfr/src/digamma.c mpfr/src/dim.c mpfr/src/div.c mpfr/src/div_2exp.c
+    mpfr/src/div_2si.c mpfr/src/div_2ui.c mpfr/src/div_d.c mpfr/src/div_ui.c mpfr/src/dump.c mpfr/src/eint.c mpfr/src/eq.c
+    mpfr/src/erf.c mpfr/src/erfc.c mpfr/src/exceptions.c mpfr/src/exp.c mpfr/src/exp10.c mpfr/src/exp2.c mpfr/src/exp3.c
+    mpfr/src/exp_2.c mpfr/src/expm1.c mpfr/src/extract.c mpfr/src/factorial.c mpfr/src/fits_intmax.c mpfr/src/fits_sint.c mpfr/src/fits_slong.c
+    mpfr/src/fits_sshort.c mpfr/src/fits_uint.c mpfr/src/fits_uintmax.c mpfr/src/fits_ulong.c mpfr/src/fits_ushort.c mpfr/src/fma.c mpfr/src/fms.c
+    mpfr/src/frac.c mpfr/src/free_cache.c mpfr/src/frexp.c mpfr/src/gamma.c mpfr/src/gammaonethird.c mpfr/src/get_d.c mpfr/src/get_d64.c
+    mpfr/src/get_exp.c mpfr/src/get_f.c mpfr/src/get_flt.c mpfr/src/get_ld.c mpfr/src/get_patches.c mpfr/src/get_si.c mpfr/src/get_sj.c
+    mpfr/src/get_str.c mpfr/src/get_ui.c mpfr/src/get_uj.c mpfr/src/get_z.c mpfr/src/get_z_exp.c mpfr/src/gmp_op.c mpfr/src/grandom.c
+    mpfr/src/hypot.c mpfr/src/init.c mpfr/src/init2.c mpfr/src/init2_malloc.c mpfr/src/inits.c mpfr/src/inits2.c mpfr/src/inp_str.c
+    mpfr/src/int_ceil_log2.c mpfr/src/isinf.c mpfr/src/isinteger.c mpfr/src/isnan.c mpfr/src/isnum.c mpfr/src/isqrt.c mpfr/src/isregular.c
+    mpfr/src/iszero.c mpfr/src/jn.c mpfr/src/li2.c mpfr/src/lngamma.c mpfr/src/log.c mpfr/src/log10.c
+    mpfr/src/log1p.c mpfr/src/log2.c mpfr/src/logging.c mpfr/src/min_prec.c mpfr/src/minmax.c mpfr/src/modf.c mpfr/src/mp_clz_tab.c
+    mpfr/src/mpfr-gmp.c mpfr/src/mpn_exp.c mpfr/src/mul.c mpfr/src/mul_2exp.c mpfr/src/mul_2si.c mpfr/src/mul_2ui.c mpfr/src/mul_d.c
+    mpfr/src/mul_ui.c mpfr/src/mulders.c mpfr/src/neg.c mpfr/src/next.c mpfr/src/out_str.c mpfr/src/pow.c mpfr/src/pow_si.c
+    mpfr/src/pow_ui.c mpfr/src/pow_z.c mpfr/src/powerof2.c mpfr/src/print_raw.c mpfr/src/print_rnd_mode.c mpfr/src/printf.c mpfr/src/rec_sqrt.c
+    mpfr/src/reldiff.c mpfr/src/rem1.c mpfr/src/rint.c mpfr/src/root.c mpfr/src/round_near_x.c mpfr/src/round_p.c mpfr/src/round_prec.c
+    mpfr/src/scale2.c mpfr/src/sec.c mpfr/src/sech.c mpfr/src/set.c mpfr/src/set_d.c mpfr/src/set_d64.c
+    mpfr/src/set_dfl_prec.c mpfr/src/set_exp.c mpfr/src/set_f.c mpfr/src/set_flt.c mpfr/src/set_inf.c mpfr/src/set_ld.c mpfr/src/set_nan.c
+    mpfr/src/set_prc_raw.c mpfr/src/set_prec.c mpfr/src/set_prec_realloc.c mpfr/src/set_q.c mpfr/src/set_rnd.c mpfr/src/set_si.c mpfr/src/set_si_2exp.c
+    mpfr/src/set_sj.c mpfr/src/set_str.c mpfr/src/set_str_raw.c mpfr/src/set_ui.c mpfr/src/set_ui_2exp.c mpfr/src/set_uj.c mpfr/src/set_z.c
+    mpfr/src/set_z_exp.c mpfr/src/set_zero.c mpfr/src/setmax.c mpfr/src/setmin.c mpfr/src/setsign.c mpfr/src/sgn.c mpfr/src/si_op.c
+    mpfr/src/signbit.c mpfr/src/sin.c mpfr/src/sin_cos.c mpfr/src/sinh.c mpfr/src/sinh_cosh.c mpfr/src/sqr.c mpfr/src/sqrt.c
+    mpfr/src/sqrt_ui.c mpfr/src/stack_interface.c mpfr/src/strtofr.c mpfr/src/sub.c mpfr/src/sub1.c mpfr/src/sub1sp.c mpfr/src/sub_d.c
+    mpfr/src/sub_ui.c mpfr/src/subnormal.c mpfr/src/sum.c mpfr/src/swap.c mpfr/src/tan.c mpfr/src/tanh.c mpfr/src/uceil_exp2.c
+    mpfr/src/uceil_log2.c mpfr/src/ufloor_log2.c mpfr/src/ui_div.c mpfr/src/ui_pow.c mpfr/src/ui_pow_ui.c mpfr/src/ui_sub.c mpfr/src/urandom.c
+    mpfr/src/urandomb.c mpfr/src/vasprintf.c mpfr/src/version.c mpfr/src/volatile.c mpfr/src/yn.c mpfr/src/zeta.c mpfr/src/zeta_ui.c
