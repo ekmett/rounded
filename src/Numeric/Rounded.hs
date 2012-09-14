@@ -40,6 +40,7 @@ module Numeric.Rounded
     , kLog2
     , kEuler
     , kCatalan
+    , moo
     ) where
 
 import Data.Proxy
@@ -60,6 +61,9 @@ type CSignPrec#  = Int#
 type CPrecision# = Int#
 type CExp#       = Int#
 type CRounding#  = Int#
+
+moo :: Int
+moo = (fromInt :: Int -> Rounded TowardZero Double) `seq` 42
 
 prec_bit :: Int
 prec_bit
