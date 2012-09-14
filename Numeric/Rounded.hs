@@ -1,14 +1,25 @@
-{-# LANGUAGE ForeignFunctionInterface
-           , GHCForeignImportPrim
-           , MagicHash
-           , UnboxedTuples
-           , UnliftedFFITypes
-           , ScopedTypeVariables
-           , Rank2Types
-           , TemplateHaskell
-           , CPP
-           #-}
-
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE GHCForeignImportPrim #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE UnliftedFFITypes #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Numeric.Rounded
+-- Copyright   :  (C) 2012 Edward Kmett, Daniel Peebles
+-- License     :  LGPL (see the file LICENSE)
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  experimental
+-- Portability :  non-portable
+--
+----------------------------------------------------------------------------
 module Numeric.Rounded
     (
     -- * floating point numbers with a specified rounding mode and precision
@@ -17,28 +28,23 @@ module Numeric.Rounded
     , fromDouble
     -- * Precision
     , Precision(precision)
-    , bits 		-- create a precision with a given number of bits at compile time
-    , bytes 		-- create a precision with a given number of bytes at compile time
-    , reifyPrecision 	-- create a precision with a given number of bits at runtime
+    , bits           -- create a precision with a given number of bits at compile time
+    , bytes          -- create a precision with a given number of bytes at compile time
+    , Bits           -- create a precision with a given number of bits with type literals
+    , Bytes          -- create a precision with a given number of bits with type literals
+    , reifyPrecision -- create a precision with a given number of bits at runtime
     -- * Rounding
     , Rounding
-    -- ** Rounding Modes
-    , TowardNearest
-    , TowardZero
-    , TowardInf
-    , TowardNegInf
-    , AwayFromZero
-    , Faithfully
-    , TowardNearestWithTiesAwayFromZero
+    , RoundingMode(..)
+    , reifyRounding
     -- * Useful Constants
     , kLog2
     , kEuler
     , kCatalan
-    -- ** Random stuff (TODO: sort this out)
     ) where
 
 import Data.Proxy
-import Data.Bits
+import Data.Bits hiding (Bits)
 import GHC.Integer.GMP.Internals
 import GHC.Integer.GMP.Prim
 import GHC.Prim
@@ -57,8 +63,9 @@ type CExp#       = Int#
 type CRounding#  = Int#
 
 prec_bit :: Int
-prec_bit | b63 == 0 = b31
-         | otherwise = b63
+prec_bit
+  | b63 == 0  = b31
+  | otherwise = b63
   where b63 = bit 63
         b31 = bit 31
 
@@ -70,7 +77,6 @@ data Rounded r p = Rounded
 
 -- We could use this in a rewrite rule for fast conversions to Double...
 -- foreign import prim "mpfr_cmm_get_d"       mpfr_cmm_get_d :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double#
-
 -- foreign import prim "mpfr_cmm_get_str"     mpfr_cmm_get_str :: CRounding# -> Int# -> CSignPrec# -> CExp# -> ByteArray# -> (# Int#, ByteArray# #)
 
 instance (Rounding r, Precision p) => Show (Rounded r p) where
@@ -110,7 +116,6 @@ binary f (Rounded s e l) (Rounded s' e' l') = r where
   r = case f (mode# (proxyRounding r)) s e l s' e' l' of
     (# s'', e'', l'' #) -> Rounded s'' e'' l''
 
-
 instance Eq (Rounded r p) where
   (==) = cmp mpfrEqual#
   (/=) = cmp mpfrNotEqual#
@@ -132,9 +137,9 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
   (+) = binary mpfrAdd#
   (-) = binary mpfrSub#
   (*) = binary mpfrMul#
-  fromInteger (S# i) = case mpfrFromInt# (prec# (Proxy::Proxy p)) i of
+  fromInteger (S# i) = case mpfrFromInt# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) i of
     (# s, e, l #) -> Rounded s e l
-  fromInteger (J# i xs) = case mpfrFromInteger# (prec# (Proxy::Proxy p)) i xs of
+  fromInteger (J# i xs) = case mpfrFromInteger# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) i xs of
     (# s, e, l #) -> Rounded s e l
   abs (Rounded s e l) = case I# s .&. complement prec_bit of
     I# s' -> Rounded s' e l
@@ -145,10 +150,10 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
     where sgn = I# (mpfrSgn# s e l)
 
 foreign import prim "mpfr_cmm_init_si" mpfrFromInt#
-  :: CPrecision# -> Int# -> (# CSignPrec#, CExp#, ByteArray# #)
+  :: CRounding# -> CPrecision# -> Int# -> (# CSignPrec#, CExp#, ByteArray# #)
 
 foreign import prim "mpfr_cmm_init_z" mpfrFromInteger#
-  :: CPrecision# -> Int# -> ByteArray# -> (# CSignPrec#, CExp#, ByteArray# #)
+  :: CRounding# -> CPrecision# -> Int# -> ByteArray# -> (# CSignPrec#, CExp#, ByteArray# #)
 
 foreign import prim "mpfr_cmm_init_q" mpfrFromRational#
   :: CRounding# -> CPrecision#
@@ -180,16 +185,19 @@ proxyRounding _ = Proxy
 proxyPrecision :: Rounded r p -> Proxy p
 proxyPrecision _ = Proxy
 
+-- | Construct a properly rounded floating point number from an 'Int'.
+
 -- TODO: shouldn't this take a rounding, too? It's conceivable that an Int might exceed the requested
 -- precision, which would require rounding.
-fromInt :: Precision p => Int -> Rounded r p
+fromInt :: (Rounding r, Precision p) => Int -> Rounded r p
 fromInt (I# i) = r where
-  r = case mpfrFromInt# (prec# (proxyPrecision r)) i of
+  r = case mpfrFromInt# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) i of
     (# s, e, l #) -> Rounded s e l
 
 foreign import prim "mpfr_cmm_init_d" mfpr_cmm_init_d
   :: CRounding# -> CPrecision# -> Double# -> (# CSignPrec#, CExp#, ByteArray# #)
 
+-- | Construct a rounded floating point number directly from a 'Double'.
 fromDouble :: (Rounding r, Precision p) => Double -> Rounded r p
 fromDouble (D# d) = r where
   r = case mfpr_cmm_init_d (mode# (proxyRounding r)) (prec# (proxyPrecision r)) d of
@@ -224,7 +232,7 @@ unary :: Rounding r => Unary -> Rounded r p -> Rounded r p
 unary f (Rounded s e l) = r where
   r = case f (mode# (proxyRounding r)) s e l of
     (# s', e', l' #) -> Rounded s' e' l'
-
+{-# INLINE unary #-}
 
 type Constant = CRounding# -> CPrecision# -> (# CSignPrec#, CExp#, ByteArray# #)
 
@@ -234,6 +242,7 @@ constant :: (Rounding r, Precision p) => Constant -> Rounded r p
 constant k = r where
   r = case k (mode# (proxyRounding r)) (prec# (proxyPrecision r)) of
       (# s, e, l #) -> Rounded s e l
+{-# INLINE constant #-}
 
 instance (Rounding r, Precision p) => Floating (Rounded r p) where
   pi = constant mpfrConstPi#
@@ -262,7 +271,6 @@ instance (Rounding r, Precision p) => Real (Rounded r p) where
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
   properFraction = undefined
 
-
 foreign import prim "mpfr_cmm_get_z_2exp" mpfrDecode# 
   :: CSignPrec# -> CExp# -> ByteArray# -> (# CExp#, Int#, ByteArray# #)
 
@@ -273,12 +281,12 @@ type Test = CSignPrec# -> CExp# -> ByteArray# -> Int#
 
 tst :: (CSignPrec# -> CExp# -> ByteArray# -> Int#) -> Rounded r p -> Bool
 tst f (Rounded s e l) = I# (f s e l) /= 0
+{-# INLINE tst #-}
 
-foreign import prim "mpfr_cmm_nan_p"  mpfrIsNaN# :: Test
-foreign import prim "mpfr_cmm_inf_p"  mpfrIsInf# :: Test
+foreign import prim "mpfr_cmm_nan_p"  mpfrIsNaN#  :: Test
+foreign import prim "mpfr_cmm_inf_p"  mpfrIsInf#  :: Test
 foreign import prim "mpfr_cmm_zero_p" mpfrIsZero# :: Test
-
-foreign import prim "mpfr_cmm_atan2" mpfrArcTan2# :: Binary
+foreign import prim "mpfr_cmm_atan2"  mpfrArcTan2# :: Binary
 
 -- FIXME: encodeFloat appears broken, but I haven't figured out how yet
 instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
@@ -287,7 +295,7 @@ instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
   floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32)) -- FIXME: this should do for now, but the real ones can change...
   decodeFloat (Rounded sp e l) = case mpfrDecode# sp e l of (# i, s, d #) -> (J# s d, I# i)
   encodeFloat (S# i)   (I# e) = r where
-    r = case int2Integer# i of 
+    r = case int2Integer# i of
           (# s, d #) -> case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of 
             (# s', e', l #) -> Rounded s' e' l
   encodeFloat (J# s d) (I# e) = r where
@@ -300,16 +308,18 @@ instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
   isIEEE _ = True -- is this a lie? it mostly behaves like an IEEE float, despite being much bigger
   atan2 = binary mpfrArcTan2#
 
-foreign import prim "mpfr_cmm_const_log2"    mpfrConstLog2# :: Constant
-foreign import prim "mpfr_cmm_const_euler"   mpfrConstEuler# :: Constant
+foreign import prim "mpfr_cmm_const_log2"    mpfrConstLog2#    :: Constant
+foreign import prim "mpfr_cmm_const_euler"   mpfrConstEuler#   :: Constant
 foreign import prim "mpfr_cmm_const_catalan" mpfrConstCatalan# :: Constant
 
 -- | Natural logarithm of 2
 kLog2 :: (Rounding r, Precision p) => Rounded r p
 kLog2 = constant mpfrConstLog2#
+
 -- | 0.577...
 kEuler :: (Rounding r, Precision p) => Rounded r p
 kEuler = constant mpfrConstEuler#
+
 -- | 0.915...
 kCatalan :: (Rounding r, Precision p) => Rounded r p
 kCatalan = constant mpfrConstCatalan#

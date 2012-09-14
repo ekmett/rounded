@@ -27,36 +27,38 @@
 
 mpfr_cmm_init_si
 {
-  /* arguments: R1 = precision, R2 = int */
-  W_ prec, i;
+  /* arguments: R1 = rounding, R2 = precision, R3 = int */
+  W_ rnd, prec, i;
   W_ mpfr;
 
-  prec = R1;
-  i = R2;
+  rnd = R1;
+  prec = R2;
+  i = R3;
 
   STK_CHK_GEN(SIZEOF_MPFR, NO_PTRS, mpfr_cmm_init_si);
 
   mpfr = Sp - SIZEOF_MPFR;
 
   foreign "C" mpfr_init2(mpfr, prec);
-  foreign "C" mpfr_set_si(mpfr, i, 0);
+  foreign "C" mpfr_set_si(mpfr, i, rnd);
 
   MPFR_RETURN1(mpfr);
 }
 
 mpfr_cmm_init_z
 {
-  /* arguments: R1 = precision, R2 = size, R3 = limbs */
-  W_ prec, s, d;
+  /* arguments: R1 = rounding, R2 = precision, R3 = size, R4 = limbs */
+  W_ rnd, prec, s, d;
   W_ mpfr, mpz;
 
-  prec = R1;
-  s = R2;
-  d = R3;
+  rnd = R1;
+  prec = R2;
+  s = R3;
+  d = R4;
 
-  MAYBE_GC(R3_PTR, mpfr_cmm_init_z);
+  MAYBE_GC(R4_PTR, mpfr_cmm_init_z);
 
-  STK_CHK_GEN(SIZEOF_MPFR + SIZEOF_MP_INT, R3_PTR, mpfr_cmm_init_z);
+  STK_CHK_GEN(SIZEOF_MPFR + SIZEOF_MP_INT, R4_PTR, mpfr_cmm_init_z);
 
   mpfr = Sp - SIZEOF_MPFR;
   mpz  = Sp - SIZEOF_MPFR - SIZEOF_MP_INT;
@@ -66,7 +68,7 @@ mpfr_cmm_init_z
   MP_INT__mp_d(mpz)     = d;
 
   foreign "C" mpfr_init2(mpfr, prec);
-  foreign "C" mpfr_set_z(mpfr, mpz, 0);
+  foreign "C" mpfr_set_z(mpfr, mpz, rnd);
 
   MPFR_RETURN1(mpfr);
 }

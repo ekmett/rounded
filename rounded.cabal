@@ -1,12 +1,12 @@
 name:               rounded
-version:            0.0.1
-synopsis:           Correctly-rounded arbitrary-precision floating point numbers using MPFR
+version:            0.1
+synopsis:           Correctly-rounded arbitrary-precision floating point arithmetic
 homepage:           http://github.com/ekmett/rounded
 bug-reports:        http://github.com/ekmett/rounded/issues
 license:            LGPL
 license-file:       LICENSE
-author:             Edward Kmett
-maintainer:         ekmett@gmail.com
+author:             Edward A. Kmett, Daniel Peebles
+maintainer:         Edward A. Kmett <ekmett@gmail.com>
 category:           Numeric, Math
 build-type:         Custom
 cabal-version:      >= 1.6
@@ -35,11 +35,11 @@ library
 
   build-depends:
     base             >= 4     && < 5,
-    reflection       >= 0.5   && < 1.2,
     ghc-prim,
     integer-gmp      >= 0.2   && < 0.6,
-    tagged           >= 0.2.3 && < 0.5,
     parallel,
+    reflection       >= 1.1.6 && < 1.2,
+    tagged           >= 0.4.4 && < 0.5,
     template-haskell >= 2.4   && < 2.9
 
   ghc-options: -Wall -Werror

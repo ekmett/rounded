@@ -1,44 +1,95 @@
-{-# LANGUAGE MagicHash, EmptyDataDecls #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Numeric.Rounded.Rounding
+-- Copyright   :  (C) 2012 Edward Kmett
+-- License     :  BSD-style (see the file LICENSE)
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  experimental
+-- Portability :  MTPCs, FDs, Rank2
+--
+-- Various rounding modes we support.
+----------------------------------------------------------------------------
 module Numeric.Rounded.Rounding
   ( Rounding(..)
-  , TowardNearest
-  , TowardZero
-  , TowardInf
-  , TowardNegInf
-  , AwayFromZero
-  , Faithfully
-  , TowardNearestWithTiesAwayFromZero
+  , RoundingMode(..)
+  , reifyRounding
   ) where
 
+import Data.Data
+import Data.Proxy
 import GHC.Prim
+import GHC.TypeLits
 
-class Rounding r where
-  mode# :: proxy r -> Int#
+data RoundingMode
+  = TowardNearestWithTiesAwayFromZero
+  | TowardNearest
+  | TowardZero
+  | TowardInf
+  | TowardNegInf
+  | AwayFromZero
+  | Faithfully
+  deriving (Eq,Ord,Show,Read,Data,Typeable)
 
-data TowardNearest 
-instance Rounding TowardNearest where
-  mode# _ = 0#
+class Rounding (r :: RoundingMode) where mode# :: p r -> Int#
+instance Rounding TowardNearest where mode# _ = 0#
+instance Rounding TowardZero    where mode# _ = 1#
+instance Rounding TowardInf     where mode# _ = 2#
+instance Rounding TowardNegInf  where mode# _ = 3#
+instance Rounding AwayFromZero  where mode# _ = 4#
+instance Rounding Faithfully    where mode# _ = 5#
+instance Rounding TowardNearestWithTiesAwayFromZero where mode# _ = -1#
 
-data TowardZero 
-instance Rounding TowardZero where
-  mode# _ = 1# 
+instance Enum RoundingMode where
+  toEnum (-1) = TowardNearestWithTiesAwayFromZero
+  toEnum 0 = TowardNearest
+  toEnum 1 = TowardZero
+  toEnum 2 = TowardInf
+  toEnum 3 = TowardNegInf
+  toEnum 4 = AwayFromZero
+  toEnum 5 = Faithfully
+  toEnum _ = error "out of range"
 
-data TowardInf
-instance Rounding TowardInf where
-  mode# _ = 2#
+  fromEnum TowardNearestWithTiesAwayFromZero = -1
+  fromEnum TowardNearest = 0
+  fromEnum TowardZero = 1
+  fromEnum TowardInf = 2
+  fromEnum TowardNegInf = 3
+  fromEnum AwayFromZero = 4
+  fromEnum Faithfully = 5
 
-data TowardNegInf
-instance Rounding TowardNegInf where
-  mode# _ = 3#
+instance Bounded RoundingMode where
+  minBound = TowardNearestWithTiesAwayFromZero
+  maxBound = Faithfully
 
-data AwayFromZero
-instance Rounding AwayFromZero where
-  mode# _ = 4#
+newtype instance Sing (m :: RoundingMode) = SRounding RoundingMode
 
-data Faithfully
-instance Rounding Faithfully where
-  mode# _ = 5#
- 
-data TowardNearestWithTiesAwayFromZero
-instance Rounding TowardNearestWithTiesAwayFromZero where
-  mode# _ = -1#
+instance SingE (Kind :: RoundingMode) RoundingMode where
+  fromSing (SRounding m) = m
+
+instance SingI TowardNearestWithTiesAwayFromZero where sing = SRounding TowardNearestWithTiesAwayFromZero
+instance SingI TowardNearest where sing = SRounding TowardNearest
+instance SingI TowardZero    where sing = SRounding TowardZero
+instance SingI TowardInf     where sing = SRounding TowardInf
+instance SingI TowardNegInf  where sing = SRounding TowardNegInf
+instance SingI AwayFromZero  where sing = SRounding AwayFromZero
+instance SingI Faithfully    where sing = SRounding Faithfully
+
+reifyRounding :: RoundingMode -> (forall s. Rounding s => Proxy s -> r) -> r
+reifyRounding TowardNearestWithTiesAwayFromZero f = f (Proxy :: Proxy TowardNearestWithTiesAwayFromZero)
+reifyRounding TowardNearest                     f = f (Proxy :: Proxy TowardNearest)
+reifyRounding TowardZero                        f = f (Proxy :: Proxy TowardZero)
+reifyRounding TowardInf                         f = f (Proxy :: Proxy TowardInf)
+reifyRounding TowardNegInf                      f = f (Proxy :: Proxy TowardNegInf)
+reifyRounding AwayFromZero                      f = f (Proxy :: Proxy AwayFromZero)
+reifyRounding Faithfully                        f = f (Proxy :: Proxy Faithfully)
+{-# INLINE reifyRounding #-}
