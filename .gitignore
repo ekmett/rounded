@@ -12,3 +12,7 @@ mparam.h
 .libs
 .deps
 libtool
+config.h
+*~
+rounded.buildinfo
+stamp-h1
