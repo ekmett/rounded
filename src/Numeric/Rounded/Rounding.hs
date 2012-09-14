@@ -12,12 +12,12 @@
 -- |
 -- Module      :  Numeric.Rounded.Rounding
 -- Copyright   :  (C) 2012 Edward Kmett
--- License     :  BSD-style (see the file LICENSE)
+-- License     :  LPGPL
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  experimental
--- Portability :  MTPCs, FDs, Rank2
+-- Portability :  non-portable
 --
--- Various rounding modes we support.
+-- Various rounding modes
 ----------------------------------------------------------------------------
 module Numeric.Rounded.Rounding
   ( Rounding(..)

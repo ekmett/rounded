@@ -28,11 +28,10 @@ module Numeric.Rounded
     , fromDouble
     -- * Precision
     , Precision(precision)
-    , bits           -- create a precision with a given number of bits at compile time
-    , bytes          -- create a precision with a given number of bytes at compile time
-    , Bits           -- create a precision with a given number of bits with type literals
-    , Bytes          -- create a precision with a given number of bits with type literals
-    , reifyPrecision -- create a precision with a given number of bits at runtime
+    , bits
+    , bytes
+    , Bytes
+    , reifyPrecision
     -- * Rounding
     , Rounding
     , RoundingMode(..)
@@ -44,7 +43,7 @@ module Numeric.Rounded
     ) where
 
 import Data.Proxy
-import Data.Bits hiding (Bits)
+import Data.Bits
 import GHC.Integer.GMP.Internals
 import GHC.Integer.GMP.Prim
 import GHC.Prim
@@ -69,7 +68,8 @@ prec_bit
   where b63 = bit 63
         b31 = bit 31
 
-data Rounded r p = Rounded
+-- | A properly rounded floating-point number with a given rounding mode and precision.
+data Rounded (r :: RoundingMode) p = Rounded
   { roundedSignPrec :: CSignPrec# -- Sign# << 64/32 | Precision#
   , roundedExp      :: CExp#
   , roundedLimbs    :: ByteArray#
@@ -77,12 +77,11 @@ data Rounded r p = Rounded
 
 -- We could use this in a rewrite rule for fast conversions to Double...
 -- foreign import prim "mpfr_cmm_get_d"       mpfr_cmm_get_d :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double#
--- foreign import prim "mpfr_cmm_get_str"     mpfr_cmm_get_str :: CRounding# -> Int# -> CSignPrec# -> CExp# -> ByteArray# -> (# Int#, ByteArray# #)
 
 instance (Rounding r, Precision p) => Show (Rounded r p) where
   showsPrec _ = showFloat
 
--- N.B.: similar to Unary, assumes that output precision is same as precsion of _second_ operand
+-- | N.B.: similar to Unary, assumes that output precision is same as precsion of _second_ operand
 type Binary
   = CRounding# ->
     CSignPrec# -> CExp# -> ByteArray# ->
@@ -101,11 +100,11 @@ type Comparison
     CSignPrec# -> CExp# -> ByteArray# ->
     Int#
 
-foreign import prim "mpfr_cmm_equal_p"         mpfrEqual#    :: Comparison
-foreign import prim "mpfr_cmm_lessgreater_p"   mpfrNotEqual# :: Comparison
-foreign import prim "mpfr_cmm_less_p"          mpfrLess# :: Comparison
-foreign import prim "mpfr_cmm_greater_p"       mpfrGreater# :: Comparison
-foreign import prim "mpfr_cmm_lessequal_p"     mpfrLessEqual# :: Comparison
+foreign import prim "mpfr_cmm_equal_p"         mpfrEqual#        :: Comparison
+foreign import prim "mpfr_cmm_lessgreater_p"   mpfrNotEqual#     :: Comparison
+foreign import prim "mpfr_cmm_less_p"          mpfrLess#         :: Comparison
+foreign import prim "mpfr_cmm_greater_p"       mpfrGreater#      :: Comparison
+foreign import prim "mpfr_cmm_lessequal_p"     mpfrLessEqual#    :: Comparison
 foreign import prim "mpfr_cmm_greaterequal_p"  mpfrGreaterEqual# :: Comparison
 
 cmp :: (CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#) -> Rounded r p -> Rounded r p -> Bool
@@ -212,18 +211,18 @@ type Unary
     CSignPrec# -> CExp# -> ByteArray# ->
     (# CSignPrec#, CExp#, ByteArray# #)
 
-foreign import prim "mpfr_cmm_log" mpfrLog# :: Unary
-foreign import prim "mpfr_cmm_exp" mpfrExp# :: Unary
-foreign import prim "mpfr_cmm_sqrt" mpfrSqrt# :: Unary
-foreign import prim "mpfr_cmm_sin" mpfrSin# :: Unary
-foreign import prim "mpfr_cmm_cos" mpfrCos# :: Unary
-foreign import prim "mpfr_cmm_tan" mpfrTan# :: Unary
-foreign import prim "mpfr_cmm_asin" mpfrArcSin# :: Unary
-foreign import prim "mpfr_cmm_acos" mpfrArcCos# :: Unary
-foreign import prim "mpfr_cmm_atan" mpfrArcTan# :: Unary
-foreign import prim "mpfr_cmm_sinh" mpfrSinh# :: Unary
-foreign import prim "mpfr_cmm_cosh" mpfrCosh# :: Unary
-foreign import prim "mpfr_cmm_tanh" mpfrTanh# :: Unary
+foreign import prim "mpfr_cmm_log"   mpfrLog#     :: Unary
+foreign import prim "mpfr_cmm_exp"   mpfrExp#     :: Unary
+foreign import prim "mpfr_cmm_sqrt"  mpfrSqrt#    :: Unary
+foreign import prim "mpfr_cmm_sin"   mpfrSin#     :: Unary
+foreign import prim "mpfr_cmm_cos"   mpfrCos#     :: Unary
+foreign import prim "mpfr_cmm_tan"   mpfrTan#     :: Unary
+foreign import prim "mpfr_cmm_asin"  mpfrArcSin#  :: Unary
+foreign import prim "mpfr_cmm_acos"  mpfrArcCos#  :: Unary
+foreign import prim "mpfr_cmm_atan"  mpfrArcTan#  :: Unary
+foreign import prim "mpfr_cmm_sinh"  mpfrSinh#    :: Unary
+foreign import prim "mpfr_cmm_cosh"  mpfrCosh#    :: Unary
+foreign import prim "mpfr_cmm_tanh"  mpfrTanh#    :: Unary
 foreign import prim "mpfr_cmm_asinh" mpfrArcSinh# :: Unary
 foreign import prim "mpfr_cmm_acosh" mpfrArcCosh# :: Unary
 foreign import prim "mpfr_cmm_atanh" mpfrArcTanh# :: Unary
@@ -245,19 +244,19 @@ constant k = r where
 {-# INLINE constant #-}
 
 instance (Rounding r, Precision p) => Floating (Rounded r p) where
-  pi = constant mpfrConstPi#
-  exp = unary mpfrExp#
-  sqrt = unary mpfrSqrt#
-  log = unary mpfrLog#
-  sin = unary mpfrSin#
-  tan = unary mpfrTan#
-  cos = unary mpfrCos#
-  asin = unary mpfrArcSin#
-  atan = unary mpfrArcTan#
-  acos = unary mpfrArcCos#
-  sinh = unary mpfrSinh#
-  tanh = unary mpfrTanh#
-  cosh = unary mpfrCosh#
+  pi    = constant mpfrConstPi#
+  exp   = unary mpfrExp#
+  sqrt  = unary mpfrSqrt#
+  log   = unary mpfrLog#
+  sin   = unary mpfrSin#
+  tan   = unary mpfrTan#
+  cos   = unary mpfrCos#
+  asin  = unary mpfrArcSin#
+  atan  = unary mpfrArcTan#
+  acos  = unary mpfrArcCos#
+  sinh  = unary mpfrSinh#
+  tanh  = unary mpfrTanh#
+  cosh  = unary mpfrCosh#
   asinh = unary mpfrArcSinh#
   atanh = unary mpfrArcTanh#
   acosh = unary mpfrArcCosh#
@@ -288,12 +287,16 @@ foreign import prim "mpfr_cmm_inf_p"  mpfrIsInf#  :: Test
 foreign import prim "mpfr_cmm_zero_p" mpfrIsZero# :: Test
 foreign import prim "mpfr_cmm_atan2"  mpfrArcTan2# :: Binary
 
--- FIXME: encodeFloat appears broken, but I haven't figured out how yet
 instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
   floatRadix  _ = 2
   floatDigits _r = I# (prec# (Proxy::Proxy p))
-  floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32)) -- FIXME: this should do for now, but the real ones can change...
+
+  -- FIXME: this should do for now, but the real ones can change...
+  floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32)) 
+
   decodeFloat (Rounded sp e l) = case mpfrDecode# sp e l of (# i, s, d #) -> (J# s d, I# i)
+
+  -- FIXME: encodeFloat appears broken, but I haven't figured out how yet
   encodeFloat (S# i)   (I# e) = r where
     r = case int2Integer# i of
           (# s, d #) -> case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of 

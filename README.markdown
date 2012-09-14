@@ -11,22 +11,51 @@ which has been updated to be compatible with GHC's use of GMP's garbage collecti
 Phantom types carry the information about the precision and rounding mode, letting you treat properly rounded floating
 point numbers as instances of `Num` or `Floating`, like any other numeric type in Haskell.
 
+Unlike other attempts to port MPFR to Haskell, this library does not require you to cripple `Integer` performance
+or link your code in an unnatural way.
+
 Usage
 -----
 
-Use a 53 bit mantissa (the same size as used by a Double), and round down intermediate results:
+```haskell
+{-# LANGUAGE DataKinds #-}
+import Numeric.Rounded
+```
 
-    import Numeric.Rounded
+To use a 53 bit significand (the same size as used by a Double), and round down intermediate results:
 
-    sin pi :: Rounded TowardZero Double
+```haskell
+>>> pi :: Rounded TowardZero Double
+3.141592653589793
+```
 
-Use a 256 bit mantissa, and round intermediate results to the nearest value:
+We can also round away from zero, or use other rounding modes.
 
-    pi :: Rounded TowardNearest $(bits 256)
+```haskell
+>>> pi :: Rounded AwayFromZero Double
+3.1415926535897936
+```
 
-Specify a mantissa size at runtime:
+We can specify the significand size directly using type literals in GHC:
 
-    reifyPrecision 512 (\(p::p) -> show (logBase 10 2 :: Rounded TowardNearest p))
+```haskell
+>>> kCatalan :: Rounded TowardZero 128
+0.915965594177219015054603514932384110773
+```
+
+You can also specify a dynamic significand size at runtime:
+
+```haskell
+>>> reifyPrecision 512 (\(_ :: Proxy p) -> show (logBase 10 2 :: Rounded TowardNearest p))
+"0.3010299956639811952137388947244930267681898814621085413104274611271081892744245094869272521181861720406844771914309953790947678811335235059996923337046956"
+```
+
+or a dynamic rounding mode:
+
+```haskell
+ghci> reifyRounding TowardZero (\(_ :: Proxy r) -> show (logBase 10 2 :: Rounded r 512))
+"0.30102999566398119521373889472449302676818988146210854131042746112710818927442450948692725211818617204068447719143099537909476788113352350599969233370469556"
+```
 
 Contact Information
 -------------------

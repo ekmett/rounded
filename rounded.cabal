@@ -19,8 +19,10 @@ description:
     use reflection, explicit instances are provided for common precisions
     and for the built-in rounding modes.
     .
-    > sin pi :: Rounded TowardZero Double
-    > rounded TowardZero 256 (sin pi)
+    >>> import Numeric.Rounded
+    >>> :set -XDataKinds
+    >>> exp pi :: Rounded TowardZero 512
+    23.140692632779269005729086367948547380266106242600211993445046409524342350690452783516971997067549219675952704801087773144428044414693835844717445879609842
 
 source-repository head
   type: git
@@ -42,7 +44,8 @@ library
     tagged           >= 0.4.4 && < 0.5,
     template-haskell >= 2.4   && < 2.9
 
-  ghc-options: -Wall -Werror
-  c-sources: cbits/mpfr-wrappers.cmm
+  ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
+  c-sources:       cbits/mpfr-wrappers.cmm
   extra-libraries: mpfr
-  include-dirs: dist/include
+  include-dirs:    dist/include
+  hs-source-dirs:  src
