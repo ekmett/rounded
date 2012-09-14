@@ -1,15 +1,15 @@
 name:               rounded
 version:            0.1
-synopsis:           Correctly-rounded arbitrary-precision floating point arithmetic
+synopsis:           Correctly-rounded arbitrary-precision floating-point arithmetic for GHC 7.6.1 using DataKinds
 homepage:           http://github.com/ekmett/rounded
 bug-reports:        http://github.com/ekmett/rounded/issues
 license:            LGPL
 license-file:       LICENSE
-author:             Edward A. Kmett, Daniel Peebles
+author:             Edward A. Kmett, Daniel G. Peebles
 maintainer:         Edward A. Kmett <ekmett@gmail.com>
 category:           Numeric, Math
 build-type:         Custom
-cabal-version:      >= 1.6
+cabal-version:      >= 1.9.2
 extra-source-files: cbits/mkMpfrDerivedConstants.c, cbits/alloc.c
 description:
     This package provides numeric instances for MPFR that use
