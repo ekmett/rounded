@@ -28,6 +28,8 @@ mpfr_init2 (mpfr_ptr x, mpfr_prec_t p)
   mp_size_t xsize;
   mpfr_limb_ptr tmp;
 
+  printf("HACK init2 %d\n", __LINE__);
+
   /* Check if we can represent the number of limbs
    * associated to the maximum of mpfr_prec_t*/
   MPFR_ASSERTN( MP_SIZE_T_MAX >= (MPFR_PREC_MAX/BYTES_PER_MP_LIMB) );
@@ -52,7 +54,11 @@ mpfr_init2 (mpfr_ptr x, mpfr_prec_t p)
   MPFR_ASSERTN(p >= MPFR_PREC_MIN && p <= MPFR_PREC_MAX);
 
   xsize = (mp_size_t) ((p - 1) / GMP_NUMB_BITS) + 1;
+  printf("HACK init2 %d at %p %p %p\n", __LINE__, &mpfr_allocate_func, &mpfr_reallocate_func, &mpfr_free_func);
+  printf("HACK init2 %d is %p %p %p\n", __LINE__, mpfr_allocate_func, mpfr_reallocate_func, mpfr_free_func);
   tmp   = (mpfr_limb_ptr) (*__gmp_allocate_func)(MPFR_MALLOC_SIZE(xsize));
+  printf("HACK init2 %d at %p %p %p\n", __LINE__, &mpfr_allocate_func, &mpfr_reallocate_func, &mpfr_free_func);
+  printf("HACK init2 %d is %p %p %p\n", __LINE__, mpfr_allocate_func, mpfr_reallocate_func, mpfr_free_func);
 
   MPFR_PREC(x) = p;                /* Set prec */
   MPFR_EXP (x) = MPFR_EXP_INVALID; /* make sure that the exp field has a
@@ -61,6 +67,7 @@ mpfr_init2 (mpfr_ptr x, mpfr_prec_t p)
   MPFR_SET_MANT_PTR(x, tmp);       /* Set Mantissa ptr */
   MPFR_SET_ALLOC_SIZE(x, xsize);   /* Fix alloc size of Mantissa */
   MPFR_SET_NAN(x);                 /* initializes to NaN */
+  printf("HACK init2 %d\n", __LINE__);
 }
 
 #ifdef MPFR_USE_OWN_MPFR_TMP_ALLOC

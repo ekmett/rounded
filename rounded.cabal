@@ -91,41 +91,84 @@ library
     tagged           >= 0.4.4 && < 0.5,
     template-haskell >= 2.4   && < 2.9
 
-  ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
-
+  ghc-options:     -Wall
+  cc-options:      -fPIC
   include-dirs:    dist/include mpfr/src
   hs-source-dirs:  src
+
+  c-sources: testing.c cbits/mpfr-wrappers.cmm
+
   c-sources:
-    cbits/mpfr-wrappers.cmm
-    mpfr/src/abort_prec_max.c mpfr/src/acos.c mpfr/src/acosh.c mpfr/src/add.c mpfr/src/add1.c mpfr/src/add1sp.c mpfr/src/add_d.c
-    mpfr/src/add_ui.c mpfr/src/agm.c mpfr/src/ai.c mpfr/src/asin.c mpfr/src/asinh.c mpfr/src/atan.c mpfr/src/atan2.c mpfr/src/atanh.c
-    mpfr/src/bernoulli.c mpfr/src/buildopt.c mpfr/src/cache.c mpfr/src/cbrt.c mpfr/src/check.c mpfr/src/clear.c mpfr/src/clear_free.c
-    mpfr/src/clears.c mpfr/src/cmp.c mpfr/src/cmp2.c mpfr/src/cmp_abs.c mpfr/src/cmp_d.c mpfr/src/cmp_ld.c mpfr/src/cmp_si.c
-    mpfr/src/cmp_ui.c mpfr/src/comparisons.c mpfr/src/const_catalan.c mpfr/src/const_euler.c mpfr/src/const_log2.c mpfr/src/const_pi.c
-    mpfr/src/constant.c mpfr/src/copysign.c mpfr/src/cos.c mpfr/src/cosh.c mpfr/src/cot.c mpfr/src/coth.c mpfr/src/csc.c
-    mpfr/src/csch.c mpfr/src/d_div.c mpfr/src/d_sub.c mpfr/src/digamma.c mpfr/src/dim.c mpfr/src/div.c mpfr/src/div_2exp.c
-    mpfr/src/div_2si.c mpfr/src/div_2ui.c mpfr/src/div_d.c mpfr/src/div_ui.c mpfr/src/dump.c mpfr/src/eint.c mpfr/src/eq.c
-    mpfr/src/erf.c mpfr/src/erfc.c mpfr/src/exceptions.c mpfr/src/exp.c mpfr/src/exp10.c mpfr/src/exp2.c mpfr/src/exp3.c
-    mpfr/src/exp_2.c mpfr/src/expm1.c mpfr/src/extract.c mpfr/src/factorial.c mpfr/src/fits_intmax.c mpfr/src/fits_sint.c mpfr/src/fits_slong.c
-    mpfr/src/fits_sshort.c mpfr/src/fits_uint.c mpfr/src/fits_uintmax.c mpfr/src/fits_ulong.c mpfr/src/fits_ushort.c mpfr/src/fma.c mpfr/src/fms.c
-    mpfr/src/frac.c mpfr/src/free_cache.c mpfr/src/frexp.c mpfr/src/gamma.c mpfr/src/gammaonethird.c mpfr/src/get_d.c mpfr/src/get_d64.c
-    mpfr/src/get_exp.c mpfr/src/get_f.c mpfr/src/get_flt.c mpfr/src/get_ld.c mpfr/src/get_patches.c mpfr/src/get_si.c mpfr/src/get_sj.c
-    mpfr/src/get_str.c mpfr/src/get_ui.c mpfr/src/get_uj.c mpfr/src/get_z.c mpfr/src/get_z_exp.c mpfr/src/gmp_op.c mpfr/src/grandom.c
-    mpfr/src/hypot.c mpfr/src/init.c mpfr/src/init2.c mpfr/src/init2_malloc.c mpfr/src/inits.c mpfr/src/inits2.c mpfr/src/inp_str.c
-    mpfr/src/int_ceil_log2.c mpfr/src/isinf.c mpfr/src/isinteger.c mpfr/src/isnan.c mpfr/src/isnum.c mpfr/src/isqrt.c mpfr/src/isregular.c
-    mpfr/src/iszero.c mpfr/src/jn.c mpfr/src/li2.c mpfr/src/lngamma.c mpfr/src/log.c mpfr/src/log10.c
-    mpfr/src/log1p.c mpfr/src/log2.c mpfr/src/logging.c mpfr/src/min_prec.c mpfr/src/minmax.c mpfr/src/modf.c mpfr/src/mp_clz_tab.c
-    mpfr/src/mpfr-gmp.c mpfr/src/mpn_exp.c mpfr/src/mul.c mpfr/src/mul_2exp.c mpfr/src/mul_2si.c mpfr/src/mul_2ui.c mpfr/src/mul_d.c
-    mpfr/src/mul_ui.c mpfr/src/mulders.c mpfr/src/neg.c mpfr/src/next.c mpfr/src/out_str.c mpfr/src/pow.c mpfr/src/pow_si.c
-    mpfr/src/pow_ui.c mpfr/src/pow_z.c mpfr/src/powerof2.c mpfr/src/print_raw.c mpfr/src/print_rnd_mode.c mpfr/src/printf.c mpfr/src/rec_sqrt.c
-    mpfr/src/reldiff.c mpfr/src/rem1.c mpfr/src/rint.c mpfr/src/root.c mpfr/src/round_near_x.c mpfr/src/round_p.c mpfr/src/round_prec.c
-    mpfr/src/scale2.c mpfr/src/sec.c mpfr/src/sech.c mpfr/src/set.c mpfr/src/set_d.c mpfr/src/set_d64.c
-    mpfr/src/set_dfl_prec.c mpfr/src/set_exp.c mpfr/src/set_f.c mpfr/src/set_flt.c mpfr/src/set_inf.c mpfr/src/set_ld.c mpfr/src/set_nan.c
-    mpfr/src/set_prc_raw.c mpfr/src/set_prec.c mpfr/src/set_prec_realloc.c mpfr/src/set_q.c mpfr/src/set_rnd.c mpfr/src/set_si.c mpfr/src/set_si_2exp.c
-    mpfr/src/set_sj.c mpfr/src/set_str.c mpfr/src/set_str_raw.c mpfr/src/set_ui.c mpfr/src/set_ui_2exp.c mpfr/src/set_uj.c mpfr/src/set_z.c
-    mpfr/src/set_z_exp.c mpfr/src/set_zero.c mpfr/src/setmax.c mpfr/src/setmin.c mpfr/src/setsign.c mpfr/src/sgn.c mpfr/src/si_op.c
-    mpfr/src/signbit.c mpfr/src/sin.c mpfr/src/sin_cos.c mpfr/src/sinh.c mpfr/src/sinh_cosh.c mpfr/src/sqr.c mpfr/src/sqrt.c
-    mpfr/src/sqrt_ui.c mpfr/src/stack_interface.c mpfr/src/strtofr.c mpfr/src/sub.c mpfr/src/sub1.c mpfr/src/sub1sp.c mpfr/src/sub_d.c
-    mpfr/src/sub_ui.c mpfr/src/subnormal.c mpfr/src/sum.c mpfr/src/swap.c mpfr/src/tan.c mpfr/src/tanh.c mpfr/src/uceil_exp2.c
-    mpfr/src/uceil_log2.c mpfr/src/ufloor_log2.c mpfr/src/ui_div.c mpfr/src/ui_pow.c mpfr/src/ui_pow_ui.c mpfr/src/ui_sub.c mpfr/src/urandom.c
-    mpfr/src/urandomb.c mpfr/src/vasprintf.c mpfr/src/version.c mpfr/src/volatile.c mpfr/src/yn.c mpfr/src/zeta.c mpfr/src/zeta_ui.c
+    mpfr/src/exceptions.c mpfr/src/extract.c mpfr/src/uceil_exp2.c
+    mpfr/src/uceil_log2.c mpfr/src/ufloor_log2.c mpfr/src/add.c mpfr/src/add1.c mpfr/src/add_ui.c mpfr/src/agm.c
+    mpfr/src/clear.c mpfr/src/cmp.c mpfr/src/cmp_abs.c mpfr/src/cmp_si.c mpfr/src/cmp_ui.c mpfr/src/comparisons.c
+    mpfr/src/div_2exp.c mpfr/src/div_2si.c mpfr/src/div_2ui.c mpfr/src/div.c mpfr/src/div_ui.c mpfr/src/dump.c
+    mpfr/src/eq.c mpfr/src/exp10.c mpfr/src/exp2.c mpfr/src/exp3.c mpfr/src/exp.c mpfr/src/frac.c mpfr/src/frexp.c
+    mpfr/src/get_d.c mpfr/src/get_exp.c mpfr/src/get_str.c mpfr/src/init.c mpfr/src/inp_str.c mpfr/src/isinteger.c
+    mpfr/src/isinf.c mpfr/src/isnan.c mpfr/src/isnum.c mpfr/src/const_log2.c mpfr/src/log.c mpfr/src/modf.c
+    mpfr/src/mul_2exp.c mpfr/src/mul_2si.c mpfr/src/mul_2ui.c mpfr/src/mul.c mpfr/src/mul_ui.c mpfr/src/neg.c
+    mpfr/src/next.c mpfr/src/out_str.c mpfr/src/printf.c mpfr/src/vasprintf.c mpfr/src/const_pi.c mpfr/src/pow.c
+    mpfr/src/pow_si.c mpfr/src/pow_ui.c mpfr/src/print_raw.c mpfr/src/print_rnd_mode.c mpfr/src/reldiff.c
+    mpfr/src/round_prec.c mpfr/src/set.c mpfr/src/setmax.c mpfr/src/setmin.c mpfr/src/set_d.c
+    mpfr/src/set_dfl_prec.c mpfr/src/set_exp.c mpfr/src/set_rnd.c mpfr/src/set_f.c mpfr/src/set_prc_raw.c
+    mpfr/src/set_prec.c mpfr/src/set_q.c mpfr/src/set_si.c mpfr/src/set_str.c mpfr/src/set_str_raw.c
+    mpfr/src/set_ui.c mpfr/src/set_z.c mpfr/src/sqrt.c mpfr/src/sqrt_ui.c mpfr/src/sub.c mpfr/src/sub1.c mpfr/src/sub_ui.c
+    mpfr/src/rint.c mpfr/src/ui_div.c mpfr/src/ui_sub.c mpfr/src/urandom.c mpfr/src/urandomb.c
+    mpfr/src/get_z_exp.c mpfr/src/swap.c mpfr/src/factorial.c mpfr/src/cosh.c mpfr/src/sinh.c mpfr/src/tanh.c
+    mpfr/src/sinh_cosh.c mpfr/src/acosh.c mpfr/src/asinh.c mpfr/src/atanh.c mpfr/src/atan.c mpfr/src/cmp2.c
+    mpfr/src/exp_2.c mpfr/src/asin.c mpfr/src/const_euler.c mpfr/src/cos.c mpfr/src/sin.c mpfr/src/tan.c mpfr/src/fma.c
+    mpfr/src/fms.c mpfr/src/hypot.c mpfr/src/log1p.c mpfr/src/expm1.c mpfr/src/log2.c mpfr/src/log10.c mpfr/src/ui_pow.c
+    mpfr/src/ui_pow_ui.c mpfr/src/minmax.c mpfr/src/dim.c mpfr/src/signbit.c mpfr/src/copysign.c
+    mpfr/src/setsign.c mpfr/src/gmp_op.c mpfr/src/init2.c mpfr/src/acos.c mpfr/src/sin_cos.c mpfr/src/set_nan.c
+    mpfr/src/set_inf.c mpfr/src/set_zero.c mpfr/src/powerof2.c mpfr/src/gamma.c mpfr/src/set_ld.c
+    mpfr/src/get_ld.c mpfr/src/cbrt.c mpfr/src/volatile.c mpfr/src/fits_sshort.c mpfr/src/fits_sint.c
+    mpfr/src/fits_slong.c mpfr/src/fits_ushort.c mpfr/src/fits_uint.c mpfr/src/fits_ulong.c
+    mpfr/src/fits_uintmax.c mpfr/src/fits_intmax.c mpfr/src/get_si.c mpfr/src/get_ui.c mpfr/src/zeta.c
+    mpfr/src/cmp_d.c mpfr/src/erf.c mpfr/src/inits.c mpfr/src/inits2.c mpfr/src/clears.c mpfr/src/sgn.c mpfr/src/check.c
+    mpfr/src/sub1sp.c mpfr/src/version.c mpfr/src/mpn_exp.c mpfr/src/mpfr-gmp.c mpfr/src/mp_clz_tab.c
+    mpfr/src/sum.c mpfr/src/add1sp.c mpfr/src/free_cache.c mpfr/src/si_op.c mpfr/src/cmp_ld.c
+    mpfr/src/set_ui_2exp.c mpfr/src/set_si_2exp.c mpfr/src/set_uj.c mpfr/src/set_sj.c mpfr/src/get_sj.c
+    mpfr/src/get_uj.c mpfr/src/get_z.c mpfr/src/iszero.c mpfr/src/cache.c mpfr/src/sqr.c mpfr/src/int_ceil_log2.c
+    mpfr/src/isqrt.c mpfr/src/strtofr.c mpfr/src/pow_z.c mpfr/src/logging.c mpfr/src/mulders.c mpfr/src/get_f.c
+    mpfr/src/round_p.c mpfr/src/erfc.c mpfr/src/atan2.c mpfr/src/subnormal.c mpfr/src/const_catalan.c
+    mpfr/src/root.c mpfr/src/sec.c mpfr/src/csc.c mpfr/src/cot.c mpfr/src/eint.c mpfr/src/sech.c mpfr/src/csch.c mpfr/src/coth.c
+    mpfr/src/round_near_x.c mpfr/src/constant.c mpfr/src/abort_prec_max.c
+    mpfr/src/stack_interface.c mpfr/src/lngamma.c mpfr/src/zeta_ui.c mpfr/src/set_d64.c mpfr/src/get_d64.c
+    mpfr/src/jn.c mpfr/src/yn.c mpfr/src/rem1.c mpfr/src/get_patches.c mpfr/src/add_d.c mpfr/src/sub_d.c mpfr/src/d_sub.c
+    mpfr/src/mul_d.c mpfr/src/div_d.c mpfr/src/d_div.c mpfr/src/li2.c mpfr/src/rec_sqrt.c mpfr/src/min_prec.c
+    mpfr/src/buildopt.c mpfr/src/digamma.c mpfr/src/bernoulli.c mpfr/src/isregular.c mpfr/src/set_flt.c
+    mpfr/src/get_flt.c mpfr/src/scale2.c mpfr/src/set_z_exp.c mpfr/src/ai.c mpfr/src/gammaonethird.c
+    mpfr/src/grandom.c mpfr/src/init2_malloc.c mpfr/src/set_prec_realloc.c mpfr/src/clear_free.c
+
+--    mpfr/src/abort_prec_max.c mpfr/src/acos.c mpfr/src/acosh.c mpfr/src/add.c mpfr/src/add1.c mpfr/src/add1sp.c mpfr/src/add_d.c
+--    mpfr/src/add_ui.c mpfr/src/agm.c mpfr/src/ai.c mpfr/src/asin.c mpfr/src/asinh.c mpfr/src/atan.c mpfr/src/atan2.c mpfr/src/atanh.c
+--    mpfr/src/bernoulli.c mpfr/src/buildopt.c mpfr/src/cache.c mpfr/src/cbrt.c mpfr/src/check.c mpfr/src/clear.c mpfr/src/clear_free.c
+--    mpfr/src/clears.c mpfr/src/cmp.c mpfr/src/cmp2.c mpfr/src/cmp_abs.c mpfr/src/cmp_d.c mpfr/src/cmp_ld.c mpfr/src/cmp_si.c
+--    mpfr/src/cmp_ui.c mpfr/src/comparisons.c mpfr/src/const_catalan.c mpfr/src/const_euler.c mpfr/src/const_log2.c mpfr/src/const_pi.c
+--    mpfr/src/constant.c mpfr/src/copysign.c mpfr/src/cos.c mpfr/src/cosh.c mpfr/src/cot.c mpfr/src/coth.c mpfr/src/csc.c
+--    mpfr/src/csch.c mpfr/src/d_div.c mpfr/src/d_sub.c mpfr/src/digamma.c mpfr/src/dim.c mpfr/src/div.c mpfr/src/div_2exp.c
+--    mpfr/src/div_2si.c mpfr/src/div_2ui.c mpfr/src/div_d.c mpfr/src/div_ui.c mpfr/src/dump.c mpfr/src/eint.c mpfr/src/eq.c
+--    mpfr/src/erf.c mpfr/src/erfc.c mpfr/src/exceptions.c mpfr/src/exp.c mpfr/src/exp10.c mpfr/src/exp2.c mpfr/src/exp3.c
+--    mpfr/src/exp_2.c mpfr/src/expm1.c mpfr/src/extract.c mpfr/src/factorial.c mpfr/src/fits_intmax.c mpfr/src/fits_sint.c mpfr/src/fits_slong.c
+--    mpfr/src/fits_sshort.c mpfr/src/fits_uint.c mpfr/src/fits_uintmax.c mpfr/src/fits_ulong.c mpfr/src/fits_ushort.c mpfr/src/fma.c mpfr/src/fms.c
+--    mpfr/src/frac.c mpfr/src/free_cache.c mpfr/src/frexp.c mpfr/src/gamma.c mpfr/src/gammaonethird.c mpfr/src/get_d.c mpfr/src/get_d64.c
+--    mpfr/src/get_exp.c mpfr/src/get_f.c mpfr/src/get_flt.c mpfr/src/get_ld.c mpfr/src/get_patches.c mpfr/src/get_si.c mpfr/src/get_sj.c
+--    mpfr/src/get_str.c mpfr/src/get_ui.c mpfr/src/get_uj.c mpfr/src/get_z.c mpfr/src/get_z_exp.c mpfr/src/gmp_op.c mpfr/src/grandom.c
+--    mpfr/src/hypot.c mpfr/src/init.c mpfr/src/init2.c mpfr/src/init2_malloc.c mpfr/src/inits.c mpfr/src/inits2.c mpfr/src/inp_str.c
+--    mpfr/src/int_ceil_log2.c mpfr/src/isinf.c mpfr/src/isinteger.c mpfr/src/isnan.c mpfr/src/isnum.c mpfr/src/isqrt.c mpfr/src/isregular.c
+--    mpfr/src/iszero.c mpfr/src/jn.c mpfr/src/li2.c mpfr/src/lngamma.c mpfr/src/log.c mpfr/src/log10.c
+--    mpfr/src/log1p.c mpfr/src/log2.c mpfr/src/logging.c mpfr/src/min_prec.c mpfr/src/minmax.c mpfr/src/modf.c mpfr/src/mp_clz_tab.c
+--    mpfr/src/mpfr-gmp.c mpfr/src/mpn_exp.c mpfr/src/mul.c mpfr/src/mul_2exp.c mpfr/src/mul_2si.c mpfr/src/mul_2ui.c mpfr/src/mul_d.c
+--    mpfr/src/mul_ui.c mpfr/src/mulders.c mpfr/src/neg.c mpfr/src/next.c mpfr/src/out_str.c mpfr/src/pow.c mpfr/src/pow_si.c
+--    mpfr/src/pow_ui.c mpfr/src/pow_z.c mpfr/src/powerof2.c mpfr/src/print_raw.c mpfr/src/print_rnd_mode.c mpfr/src/printf.c mpfr/src/rec_sqrt.c
+--    mpfr/src/reldiff.c mpfr/src/rem1.c mpfr/src/rint.c mpfr/src/root.c mpfr/src/round_near_x.c mpfr/src/round_p.c mpfr/src/round_prec.c
+--    mpfr/src/scale2.c mpfr/src/sec.c mpfr/src/sech.c mpfr/src/set.c mpfr/src/set_d.c mpfr/src/set_d64.c
+--    mpfr/src/set_dfl_prec.c mpfr/src/set_exp.c mpfr/src/set_f.c mpfr/src/set_flt.c mpfr/src/set_inf.c mpfr/src/set_ld.c mpfr/src/set_nan.c
+--    mpfr/src/set_prc_raw.c mpfr/src/set_prec.c mpfr/src/set_prec_realloc.c mpfr/src/set_q.c mpfr/src/set_rnd.c mpfr/src/set_si.c mpfr/src/set_si_2exp.c
+--    mpfr/src/set_sj.c mpfr/src/set_str.c mpfr/src/set_str_raw.c mpfr/src/set_ui.c mpfr/src/set_ui_2exp.c mpfr/src/set_uj.c mpfr/src/set_z.c
+--    mpfr/src/set_z_exp.c mpfr/src/set_zero.c mpfr/src/setmax.c mpfr/src/setmin.c mpfr/src/setsign.c mpfr/src/sgn.c mpfr/src/si_op.c
+--    mpfr/src/signbit.c mpfr/src/sin.c mpfr/src/sin_cos.c mpfr/src/sinh.c mpfr/src/sinh_cosh.c mpfr/src/sqr.c mpfr/src/sqrt.c
+--    mpfr/src/sqrt_ui.c mpfr/src/stack_interface.c mpfr/src/strtofr.c mpfr/src/sub.c mpfr/src/sub1.c mpfr/src/sub1sp.c mpfr/src/sub_d.c
+--    mpfr/src/sub_ui.c mpfr/src/subnormal.c mpfr/src/sum.c mpfr/src/swap.c mpfr/src/tan.c mpfr/src/tanh.c mpfr/src/uceil_exp2.c
+--    mpfr/src/uceil_log2.c mpfr/src/ufloor_log2.c mpfr/src/ui_div.c mpfr/src/ui_pow.c mpfr/src/ui_pow_ui.c mpfr/src/ui_sub.c mpfr/src/urandom.c
+--    mpfr/src/urandomb.c mpfr/src/vasprintf.c mpfr/src/version.c mpfr/src/volatile.c mpfr/src/yn.c mpfr/src/zeta.c mpfr/src/zeta_ui.c

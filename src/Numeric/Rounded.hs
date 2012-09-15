@@ -41,6 +41,7 @@ module Numeric.Rounded
     , kEuler
     , kCatalan
     , moo
+    , testing
     ) where
 
 import Data.Proxy
@@ -62,8 +63,10 @@ type CPrecision# = Int#
 type CExp#       = Int#
 type CRounding#  = Int#
 
-moo :: Int
-moo = (fromInt :: Int -> Rounded TowardZero Double) `seq` 42
+moo :: Integer -> Integer
+moo x = x^5 `mod` 122532634634347377375324
+
+foreign import ccall testing :: IO ()
 
 prec_bit :: Int
 prec_bit

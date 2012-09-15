@@ -1,7 +1,6 @@
 AC_PREREQ([2.68])
 AC_INIT([rounded], [0.1], [ekmett@gmail.com])
 AC_CONFIG_SRCDIR([cbits/mkMpfrDerivedConstants.c])
-AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 
 # Checks for programs.
