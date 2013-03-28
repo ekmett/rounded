@@ -87,8 +87,8 @@ library
     ghc-prim,
     integer-gmp      >= 0.2   && < 0.6,
     parallel,
-    reflection       >= 1.1.6 && < 1.2,
-    tagged           >= 0.4.4 && < 0.5,
+    reflection       >= 1.1.6 && < 2,
+    tagged           >= 0.4.4 && < 1,
     template-haskell >= 2.4   && < 2.9
 
   ghc-options:     -Wall

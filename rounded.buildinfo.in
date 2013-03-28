@@ -1,1 +1,1 @@
-cc-options: @CPPFLAGS@ @DEFS@
+cc-options: -fPIC @CPPFLAGS@ @DEFS@
