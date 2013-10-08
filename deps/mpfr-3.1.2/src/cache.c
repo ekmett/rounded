@@ -38,7 +38,7 @@ void
 mpfr_clear_cache (mpfr_cache_t cache)
 {
   if (MPFR_PREC (cache->x) != 0)
-    mpfr_clear (cache->x);
+    mpfr_clear_free (cache->x);
   MPFR_PREC (cache->x) = 0;
 }
 
@@ -58,12 +58,12 @@ mpfr_cache (mpfr_ptr dest, mpfr_cache_t cache, mpfr_rnd_t rnd)
          previous result is not sufficient. */
 
       if (MPFR_UNLIKELY (pold == 0))  /* No previous result. */
-        mpfr_init2 (cache->x, prec);
+        mpfr_init2_malloc (cache->x, prec);
 
       /* Update the cache. */
       pold = prec;
       /* no need to keep the previous value */
-      mpfr_set_prec (cache->x, pold);
+      mpfr_set_prec_realloc (cache->x, pold);
       cache->inexact = (*cache->func) (cache->x, MPFR_RNDN);
     }
 
