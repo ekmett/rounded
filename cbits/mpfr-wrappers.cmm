@@ -39,8 +39,8 @@ mpfr_cmm_init_si
 
   mpfr = Sp - SIZEOF_MPFR;
 
-  foreign "C" mpfr_init2(mpfr, prec);
-  foreign "C" mpfr_set_si(mpfr, i, rnd);
+  foreign "C" mpfr_init2(mpfr "ptr", prec) [];
+  foreign "C" mpfr_set_si(mpfr "ptr", i, rnd) [];
 
   MPFR_RETURN1(mpfr);
 }
@@ -48,12 +48,13 @@ mpfr_cmm_init_si
 mpfr_cmm_init_z
 {
   /* arguments: R1 = rounding, R2 = precision, R3 = size, R4 = limbs */
-  W_ rnd, prec, s, d;
+  CInt s;
+  W_ rnd, prec, d;
   W_ mpfr, mpz;
 
   rnd = R1;
   prec = R2;
-  s = R3;
+  s = W_TO_INT(R3);
   d = R4;
 
   MAYBE_GC(R4_PTR, mpfr_cmm_init_z);
@@ -64,11 +65,11 @@ mpfr_cmm_init_z
   mpz  = Sp - SIZEOF_MPFR - SIZEOF_MP_INT;
 
   MP_INT__mp_alloc(mpz) = W_TO_INT(BYTE_ARR_WDS(d));
-  MP_INT__mp_size(mpz)  = s;
-  MP_INT__mp_d(mpz)     = d;
+  MP_INT__mp_size(mpz)  = (s);
+  MP_INT__mp_d(mpz)     = BYTE_ARR_CTS(d);
 
-  foreign "C" mpfr_init2(mpfr, prec);
-  foreign "C" mpfr_set_z(mpfr, mpz, rnd);
+  foreign "C" mpfr_init2(mpfr "ptr", prec) [];
+  foreign "C" mpfr_set_z(mpfr "ptr", mpz, rnd) [];
 
   MPFR_RETURN1(mpfr);
 }
@@ -78,14 +79,15 @@ mpfr_cmm_init_q
   /* arguments: R1 = rounding, R2 = precision,
                 R3 = numerator size, R4 = numerator limbs
                 R5 = denominator size, R6 = denominator limbs */
-  W_ rnd, prec, s1, d1, s2, d2;
+  CInt s1, s2;
+  W_ rnd, prec, d1, d2;
   W_ mpfr, mpq;
 
   rnd = R1;
   prec = R2;
-  s1 = R3;
+  s1 = W_TO_INT(R3);
   d1 = R4;
-  s2 = R5;
+  s2 = W_TO_INT(R5);
   d2 = R6;
 
   MAYBE_GC(R4_PTR & R6_PTR, mpfr_cmm_init_q);
@@ -96,14 +98,14 @@ mpfr_cmm_init_q
   mpq  = Sp - SIZEOF_MPFR - SIZEOF_MP_RAT;
 
   MP_RAT__mp_num__mp_alloc(mpq) = W_TO_INT(BYTE_ARR_WDS(d1));
-  MP_RAT__mp_num__mp_size(mpq)  = s1;
+  MP_RAT__mp_num__mp_size(mpq)  = (s1);
   MP_RAT__mp_num__mp_d(mpq)     = BYTE_ARR_CTS(d1);
   MP_RAT__mp_den__mp_alloc(mpq) = W_TO_INT(BYTE_ARR_WDS(d2));
-  MP_RAT__mp_den__mp_size(mpq)  = s2;
+  MP_RAT__mp_den__mp_size(mpq)  = (s2);
   MP_RAT__mp_den__mp_d(mpq)     = BYTE_ARR_CTS(d2);
 
-  foreign "C" mpfr_init2(mpfr, prec);
-  foreign "C" mpfr_set_q(mpfr, mpq, rnd);
+  foreign "C" mpfr_init2(mpfr "ptr", prec) [];
+  foreign "C" mpfr_set_q(mpfr "ptr", mpq "ptr", rnd) [];
 
   MPFR_RETURN1(mpfr);
 }
@@ -123,8 +125,8 @@ mpfr_cmm_init_d
 
   mpfr = Sp - 1 * SIZEOF_MPFR;
 
-  foreign "C" mpfr_init2(mpfr, prec) [];
-  foreign "C" mpfr_set_d(mpfr, dbl, rnd) [];
+  foreign "C" mpfr_init2(mpfr "ptr", prec) [];
+  foreign "C" mpfr_set_d(mpfr "ptr", dbl, rnd) [];
 
   MPFR_RETURN1(mpfr);
 }
@@ -133,13 +135,14 @@ mpfr_cmm_init_z_2exp
 {
   /* arguments: R1 = rounding, R2 = precision, R3 = exponent,
                 R4 = mpz size, R5 = mpz limbs */
-  W_ rnd, prec, exp, s, d;
+  CInt s;
+  W_ rnd, prec, exp, d;
   W_ mpfr, mpz;
 
   rnd = R1;
   prec = R2;
   exp = R3;
-  s = R4;
+  s = W_TO_INT(R4);
   d = R5;
 
   MAYBE_GC(R5_PTR, mpfr_cmm_init_z_2exp);
@@ -150,11 +153,11 @@ mpfr_cmm_init_z_2exp
   mpz  = Sp - SIZEOF_MPFR - SIZEOF_MP_INT;
 
   MP_INT__mp_alloc(mpz) = W_TO_INT(BYTE_ARR_WDS(d));
-  MP_INT__mp_size(mpz)  = s;
-  MP_INT__mp_d(mpz)     = d;
+  MP_INT__mp_size(mpz)  = (s);
+  MP_INT__mp_d(mpz)     = BYTE_ARR_CTS(d);
 
-  foreign "C" mpfr_init2(mpfr, prec);
-  foreign "C" mpfr_set_z_2exp(mpfr, mpz, exp, rnd);
+  foreign "C" mpfr_init2(mpfr "ptr", prec) [];
+  foreign "C" mpfr_set_z_2exp(mpfr "ptr", mpz "ptr", exp, rnd) [];
 
   MPFR_RETURN1(mpfr);
 }
@@ -176,7 +179,7 @@ mpfr_cmm_get_d
 
   MPFR_REBUILD(R2, R3, R4, mpfr);
 
-  (ret) = foreign "C" mpfr_get_d(mpfr, rnd);
+  (ret) = foreign "C" mpfr_get_d(mpfr "ptr", rnd) [];
 
   D1 = ret;
   jump %ENTRY_CODE(Sp(0));
@@ -201,7 +204,7 @@ mpfr_cmm_get_z_2exp
 
   // Since we're immutable, we could really just reuse the limbs, but I haven't figured
   // out how to do that reliably yet.
-  (exp) = foreign "C" mpfr_get_z_2exp(mpz, mpfr);
+  (exp) = foreign "C" mpfr_get_z_2exp(mpz "ptr", mpfr "ptr") [];
   
   RET_NNP(
     exp,
@@ -222,7 +225,7 @@ mpfr_cmm_sgn
   MPFR_REBUILD(R1, R2, R3, mpfr);
 
   /* TODO check for NaN? */
-  (ret) = foreign "C" mpfr_sgn(mpfr);
+  (ret) = foreign "C" mpfr_sgn(mpfr "ptr") [];
 
   R1 = ret;
 
@@ -238,7 +241,7 @@ mpfr_cmm_cmp
 
   MAYBE_GC(R3_PTR & R6_PTR, mpfr_cmm_cmp);
 
-  STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R5_PTR, mpfr_cmm_cmp);
+  STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R6_PTR, mpfr_cmm_cmp);
 
   op1 = Sp - 1 * SIZEOF_MPFR;
   op2 = Sp - 2 * SIZEOF_MPFR;
@@ -246,12 +249,12 @@ mpfr_cmm_cmp
 	MPFR_REBUILD(R1, R2, R3, op1);
 	MPFR_REBUILD(R4, R5, R6, op2);
 
-  foreign "C" mpfr_clear_erangeflag();
-  (ret) = foreign "C" mpfr_cmp(op1,op2);
+  foreign "C" mpfr_clear_erangeflag() [];
+  (ret) = foreign "C" mpfr_cmp(op1 "ptr",op2 "ptr") [];
   if (ret == 0) {
-    (err) = foreign "C" mpfr_erangeflag_p();
+    (err) = foreign "C" mpfr_erangeflag_p() [];
     if (err != 0) {
-      foreign "C" mpfr_clear_erangeflag();
+      foreign "C" mpfr_clear_erangeflag() [];
     }
     R1 = err;
   } else {
@@ -281,7 +284,7 @@ mpfr_cmm_get_str
   dec = Sp - 1 * SIZEOF_MPFR - WDS(1);
 
   // Free the memory...
-  (ret) = foreign "C" mpfr_get_str(0, dec, base, 0, mpfr, rnd);
+  (ret) = foreign "C" mpfr_get_str(0, dec "ptr", base, 0, mpfr "ptr", rnd) [];
 
   RET_NP(W_[dec], ret - SIZEOF_StgArrWords);
 }
@@ -292,12 +295,12 @@ name                                                          \
 {                                                             \
   W_ ret, op1, op2;                                           \
   MAYBE_GC(R3_PTR & R6_PTR, name);                            \
-  STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R5_PTR, name);          \
+  STK_CHK_GEN(SIZEOF_MPFR*2, R3_PTR & R6_PTR, name);          \
   op1 = Sp - 1 * SIZEOF_MPFR;                                 \
   op2 = Sp - 2 * SIZEOF_MPFR;                                 \
 	MPFR_REBUILD(R1, R2, R3, op1);                              \
   MPFR_REBUILD(R4, R5, R6, op2);                              \
-  (ret) = foreign "C" cmp(op1, op2);                          \
+  (ret) = foreign "C" cmp(op1 "ptr", op2 "ptr") [];           \
   R1 = ret;                                                   \
   jump %ENTRY_CODE(Sp(0));                                    \
 }
@@ -318,7 +321,7 @@ name                                        \
   STK_CHK_GEN(SIZEOF_MPFR, R3_PTR, name);   \
   op = Sp - 1 * SIZEOF_MPFR;                \
   MPFR_REBUILD(R1, R2, R3, op);             \
-  (ret) = foreign "C" tst(op);              \
+  (ret) = foreign "C" tst(op "ptr") [];     \
   R1 = ret;                                 \
   jump %ENTRY_CODE(Sp(0));                  \
 }                                           \
@@ -346,8 +349,8 @@ name                                                              \
   MPFR_REBUILD(R2, R3, R4, op1);                                  \
   MPFR_REBUILD(R5, R6, R7, op2);                                  \
                                                                   \
-  foreign "C" mpfr_init2(ret, prec);                              \
-  foreign "C" mpfr_fun(ret, op1, op2, rnd);                       \
+  foreign "C" mpfr_init2(ret "ptr", prec) [];                     \
+  foreign "C" mpfr_fun(ret "ptr", op1 "ptr", op2 "ptr", rnd) [];  \
                                                                   \
   MPFR_RETURN1(ret);                                              \
 }
@@ -377,8 +380,8 @@ name                                                              \
                                                                   \
   MPFR_REBUILD(R2, R3, R4, op1);                                  \
                                                                   \
-  foreign "C" mpfr_init2(ret, prec);                              \
-  foreign "C" mpfr_fun(ret, op1, rnd);                            \
+  foreign "C" mpfr_init2(ret "ptr", prec) [];                     \
+  foreign "C" mpfr_fun(ret "ptr", op1 "ptr", rnd) [];             \
                                                                   \
   MPFR_RETURN1(ret);                                              \
 }
@@ -407,8 +410,8 @@ name                                                             \
   prec = R2;                                                     \
   STK_CHK_GEN(SIZEOF_MPFR, NO_PTRS, name);                       \
   mpfr = Sp - 1 * SIZEOF_MPFR;                                   \
-  foreign "C" mpfr_init2(mpfr, prec) [];                         \
-  foreign "C" mpfr_constant(mpfr, rnd) [];                       \
+  foreign "C" mpfr_init2(mpfr "ptr", prec) [];                   \
+  foreign "C" mpfr_constant(mpfr "ptr", rnd) [];                 \
                                                                  \
   MPFR_RETURN1(mpfr);                                            \
 }
