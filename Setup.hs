@@ -36,7 +36,7 @@ inDirectory dir action = do
   setCurrentDirectory old
   return res
 
-mpfrVersion = "3.1.0"
+mpfrVersion = "3.1.2"
 mpfrRoot = "deps/mpfr-" ++ mpfrVersion
 
 -- TODO: support Windows nicely
