@@ -135,6 +135,15 @@ mpfrHooks = autoconfUserHooks
 
     createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1.a") objects
 
+    putStrLn "Mangling static library (prof)..."
+    inDirectory (distDir </> "tmp") $ do
+      runOrBomb "ar" ["-x", distDir </> "build" </> "libHSrounded-0.1_p.a"]
+      runOrBomb "ar" ["-x", distDir </> "lib" </> "libmpfr.a"]
+
+    objects <- map ((distDir </> "tmp") </>) <$> filter (".o" `isSuffixOf`) <$> getDirectoryContents (distDir </> "tmp")
+
+    createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1_p.a") objects
+
     postBuild simpleUserHooks args flags pkg_descr lbi
 
   mpfrPostClean args flags pkg_descr _ = do
