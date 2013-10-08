@@ -70,7 +70,7 @@ makeMpfr :: FilePath -> IO ()
 makeMpfr distDir =
   inDirectory mpfrRoot $ do
     putStrLn $ "--> Building MPFR " ++ mpfrVersion ++ "..."
-    runOrBomb "make" []
+    runOrBomb "make" ["-j6"]
     runOrBomb "make" ["install"]
 
 mpfrHooks :: UserHooks
