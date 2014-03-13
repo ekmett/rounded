@@ -10,6 +10,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedFFITypes #-}
+{-# LANGUAGE RoleAnnotations #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Rounded
@@ -81,6 +82,8 @@ data Rounded (r :: RoundingMode) p = Rounded
   , roundedExp      :: CExp#
   , roundedLimbs    :: ByteArray#
   }
+
+type role Rounded nominal nominal
 
 -- We could use this in a rewrite rule for fast conversions to Double...
 -- foreign import prim "mpfr_cmm_get_d"       mpfr_cmm_get_d :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double#
