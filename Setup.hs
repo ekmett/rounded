@@ -126,6 +126,7 @@ mpfrHooks = autoconfUserHooks
   mpfrPostBuild args flags pkg_descr lbi = do
     distDir <- getDist
     (ar, _) <- requireProgram silent arProgram defaultProgramDb
+    (ranlib, _) <- requireProgram silent ranlibProgram defaultProgramDb
 
     putStrLn "Mangling static library..."
     inDirectory (distDir </> "tmp") $ do
@@ -133,8 +134,12 @@ mpfrHooks = autoconfUserHooks
       runOrBomb "ar" ["-x", distDir </> "lib" </> "libmpfr.a"]
 
     objects <- map ((distDir </> "tmp") </>) <$> filter (".o" `isSuffixOf`) <$> getDirectoryContents (distDir </> "tmp")
+    forM_ objects $ \o -> do
+      runOrBomb "mv" [o, o <.> "tmp"]
+      runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
 
     createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1.a") objects
+    runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1.a"]
 
     putStrLn "Mangling static library (prof)..."
     inDirectory (distDir </> "tmp") $ do
@@ -142,8 +147,12 @@ mpfrHooks = autoconfUserHooks
       runOrBomb "ar" ["-x", distDir </> "lib" </> "libmpfr.a"]
 
     objects <- map ((distDir </> "tmp") </>) <$> filter (".o" `isSuffixOf`) <$> getDirectoryContents (distDir </> "tmp")
+    forM_ objects $ \o -> do
+      runOrBomb "mv" [o, o <.> "tmp"]
+      runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
 
     createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1_p.a") objects
+    runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1_p.a"]
 
     postBuild simpleUserHooks args flags pkg_descr lbi
 
