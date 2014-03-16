@@ -29,7 +29,6 @@ import Data.Data
 import Data.Proxy
 import Data.Singletons
 import GHC.Prim
-import GHC.TypeLits
 
 data RoundingMode
   = TowardNearestWithTiesAwayFromZero
@@ -74,8 +73,10 @@ instance Bounded RoundingMode where
 
 newtype instance Sing (m :: RoundingMode) = SRounding RoundingMode
 
-instance SingE (Kind :: RoundingMode) RoundingMode where
-  fromSing (SRounding m) = m
+instance SingKind ('KProxy :: KProxy RoundingMode) where
+  type DemoteRep ('KProxy :: KProxy RoundingMode) = RoundingMode
+  fromSing (SRounding n) = n
+  toSing n = SomeSing (SRounding n)
 
 instance SingI TowardNearestWithTiesAwayFromZero where sing = SRounding TowardNearestWithTiesAwayFromZero
 instance SingI TowardNearest where sing = SRounding TowardNearest
