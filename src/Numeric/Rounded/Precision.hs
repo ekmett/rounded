@@ -30,6 +30,7 @@ module Numeric.Rounded.Precision
 
 import Data.Proxy
 import Data.Reflection
+import Data.Singletons
 import Foreign.C.Types
 import GHC.Types
 import GHC.TypeLits
@@ -62,12 +63,12 @@ instance Precision Double where
 instance Precision CDouble where
   precision = floatPrecision
 
-instance SingRep n Integer => Precision (n :: Nat) where
+instance SingKind ('KProxy :: KProxy Integer) => Precision (n :: Nat) where
   precision _ = max 2 $ fromInteger (withSing $ \(x :: Sing n) -> fromSing x)
 
 data Bytes (n :: Nat)
 
-instance SingRep n Integer => Precision (Bytes n) where
+instance SingKind ('KProxy :: KProxy Integer) => Precision (Bytes n) where
   precision _ = max 2 $ 8 * fromInteger (withSing $ \(x :: Sing n) -> fromSing x)
 
 -- | Specify a number of bits of 'Precision' in the significand.
