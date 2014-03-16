@@ -27,6 +27,7 @@ module Numeric.Rounded.Rounding
 
 import Data.Data
 import Data.Proxy
+import Data.Singletons
 import GHC.Prim
 import GHC.TypeLits
 
