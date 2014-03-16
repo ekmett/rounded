@@ -5,6 +5,7 @@ import Distribution.Simple.Program
 import Distribution.Simple.Program.Builtin
 import Distribution.Simple.Program.Db
 import Distribution.Simple.Program.Ar
+import Distribution.Simple.Program.Find
 import Distribution.Simple.LocalBuildInfo
 import Distribution.Simple.Setup
 import Distribution.PackageDescription
@@ -114,7 +115,7 @@ mpfrHooks = autoconfUserHooks
     putStrLn $ "Determining MPFR constants..."
     programExists <- doesFileExist $ distDir </> "mkMpfrDerivedConstants"
     unless programExists $ do
-      Just gcc <- programFindLocation gccProgram normal
+      Just gcc <- programFindLocation gccProgram normal defaultProgramSearchPath
       runOrBomb gcc ["cbits/mkMpfrDerivedConstants.c", "-I" ++ distDir </> "include", "-o", distDir </> "mkMpfrDerivedConstants"]
     headerExists <- doesFileExist $ distDir </> "include" </> "MpfrDerivedConstants.h"
     unless headerExists $ do
