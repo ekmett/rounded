@@ -40,9 +40,10 @@ library
     ghc-prim,
     integer-gmp      >= 0.2   && < 0.6,
     parallel,
-    reflection       >= 1.1.6 && < 1.2,
-    tagged           >= 0.4.4 && < 0.5,
-    template-haskell >= 2.4   && < 2.9
+    reflection       >= 1.1.6 && < 1.5,
+    singletons       >= 0.9.3 && < 0.10,
+    tagged           >= 0.4.4 && < 0.8,
+    template-haskell >= 2.4   && < 2.10
 
   ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
   c-sources:       cbits/mpfr-wrappers.cmm
