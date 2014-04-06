@@ -64,12 +64,12 @@ instance Precision CDouble where
   precision = floatPrecision
 
 instance KnownNat n => Precision (n :: Nat) where
-  precision _ = max 2 $ fromInteger (withSing $ \(x :: Sing n) -> fromSing x)
+  precision p = max 2 $ fromInteger (natVal p)
 
 data Bytes (n :: Nat)
 
 instance KnownNat n => Precision (Bytes n) where
-  precision _ = max 2 $ 8 * fromInteger (withSing $ \(x :: Sing n) -> fromSing x)
+  precision p = max 2 $ 8 * fromInteger (natVal (undefined :: Bytes n))
 
 -- | Specify a number of bits of 'Precision' in the significand.
 --

@@ -36,12 +36,12 @@ library
     Numeric.Rounded.Precision
 
   build-depends:
-    base             >= 4     && < 5,
+    base             >= 4.7     && < 5,
     ghc-prim,
     integer-gmp      >= 0.2   && < 0.6,
     parallel,
     reflection       >= 1.1.6 && < 1.5,
-    singletons       >= 0.9.3 && < 0.10,
+    singletons       >= 0.9.3 && < 0.11,
     tagged           >= 0.4.4 && < 0.8,
     template-haskell >= 2.4   && < 2.10
 
