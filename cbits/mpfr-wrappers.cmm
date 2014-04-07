@@ -1,12 +1,6 @@
 #include "Cmm.h"
 #include "MpfrDerivedConstants.h"
 
-
-
-
-
-
-
 #define MPFR_REBUILD(X, Y, Z, mpfr)                               \
   if (X >> PREC_SHIFT == 0) {                                     \
     MPFR__mpfr_sign(mpfr) = 1;                                    \
@@ -30,10 +24,6 @@
     sign_prec,                                                    \
     MPFR__mpfr_exp(mpfr),                                         \
     MPFR_UNMANGLE_PTR(MPFR__mpfr_d(mpfr)) - SIZEOF_StgArrWords);
-
-
-
-
 
 
 mpfr_cmm_init_si(W_ rnd, W_ prec, W_ i)
