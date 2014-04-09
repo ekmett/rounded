@@ -40,6 +40,13 @@ inDirectory dir action = do
 mpfrVersion = "3.1.2"
 mpfrRoot = "deps/mpfr-" ++ mpfrVersion
 
+
+pathsWithSuffix :: String -> FilePath -> IO [FilePath]
+pathsWithSuffix suffix path = do
+  files <- getDirectoryContents path
+  return $ map (path </>) (filter (suffix `isSuffixOf`) files)
+
+
 -- TODO: support Windows nicely
 runOrBomb :: FilePath -> [String] -> IO ()
 runOrBomb cmd args = do
@@ -71,7 +78,7 @@ makeMpfr :: FilePath -> IO ()
 makeMpfr distDir =
   inDirectory mpfrRoot $ do
     putStrLn $ "--> Building MPFR " ++ mpfrVersion ++ "..."
-    runOrBomb "make" ["-j6"]
+    runOrBomb "make" ["-j4"]
     runOrBomb "make" ["install"]
 
 mpfrHooks :: UserHooks
@@ -121,7 +128,12 @@ mpfrHooks = autoconfUserHooks
     unless headerExists $ do
       header <- readProcess (distDir </> "mkMpfrDerivedConstants") [] ""
       writeFile (distDir </> "include" </> "MpfrDerivedConstants.h") header
-    return emptyHookedBuildInfo
+
+    createDirectory' $ distDir </> "libtmp"
+    copyFile (distDir </> "lib" </> "libmpfr.a") (distDir </> "libtmp" </> "libmpfr.a")
+    let modified = emptyBuildInfo { extraLibs = ["mpfr"], extraLibDirs = [distDir </> "libtmp"] }
+
+    return (Just modified, snd emptyHookedBuildInfo)
 
   mpfrPostBuild args flags pkg_descr lbi = do
     distDir <- getDist
@@ -133,10 +145,10 @@ mpfrHooks = autoconfUserHooks
       runOrBomb "ar" ["-x", distDir </> "build" </> "libHSrounded-0.1.a"]
       runOrBomb "ar" ["-x", distDir </> "lib" </> "libmpfr.a"]
 
-    objects <- map ((distDir </> "tmp") </>) <$> filter (".o" `isSuffixOf`) <$> getDirectoryContents (distDir </> "tmp")
-    forM_ objects $ \o -> do
-      runOrBomb "mv" [o, o <.> "tmp"]
-      runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
+    objects <- pathsWithSuffix ".o" $ distDir </> "tmp"
+    --forM_ objects $ \o -> do
+    --  runOrBomb "mv" [o, o <.> "tmp"]
+    --  runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
 
     createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1.a") objects
     runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1.a"]
@@ -146,10 +158,10 @@ mpfrHooks = autoconfUserHooks
       runOrBomb "ar" ["-x", distDir </> "build" </> "libHSrounded-0.1_p.a"]
       runOrBomb "ar" ["-x", distDir </> "lib" </> "libmpfr.a"]
 
-    objects <- map ((distDir </> "tmp") </>) <$> filter (".o" `isSuffixOf`) <$> getDirectoryContents (distDir </> "tmp")
-    forM_ objects $ \o -> do
-      runOrBomb "mv" [o, o <.> "tmp"]
-      runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
+    objects <- pathsWithSuffix ".o" $ distDir </> "tmp"
+    --forM_ objects $ \o -> do
+    --  runOrBomb "mv" [o, o <.> "tmp"]
+    --  runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
 
     createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1_p.a") objects
     runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1_p.a"]
