@@ -117,6 +117,7 @@ mpfrHooks = autoconfUserHooks
 
   mpfrPreBuild args flags = do
     preBuild simpleUserHooks args flags
+    (ar, _) <- requireProgram silent arProgram defaultProgramDb
     distDir <- getDist
     makeMpfr distDir
     putStrLn $ "Determining MPFR constants..."
@@ -130,8 +131,11 @@ mpfrHooks = autoconfUserHooks
       writeFile (distDir </> "include" </> "MpfrDerivedConstants.h") header
 
     createDirectory' $ distDir </> "libtmp"
-    copyFile (distDir </> "lib" </> "libmpfr.a") (distDir </> "libtmp" </> "libmpfr.a")
-    let modified = emptyBuildInfo { extraLibs = ["mpfr"], extraLibDirs = [distDir </> "libtmp"] }
+    picObjects <- pathsWithSuffix ".o" $ mpfrRoot </> "src" </> ".libs"
+    createArLibArchive silent ar (distDir </> "libtmp" </> "libmpfrPIC.a") picObjects
+    runOrBomb "ranlib" [distDir </> "libtmp" </> "libmpfrPIC.a"]
+
+    let modified = emptyBuildInfo { extraLibs = ["mpfrPIC"], extraLibDirs = [distDir </> "libtmp"] }
 
     return (Just modified, snd emptyHookedBuildInfo)
 
