@@ -28,8 +28,6 @@ module Numeric.Rounded
     , fromDouble
     -- * Precision
     , Precision(precision)
-    , bits
-    , bytes
     , Bytes
     , reifyPrecision
     -- * Rounding

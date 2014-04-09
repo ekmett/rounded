@@ -23,8 +23,6 @@
 module Numeric.Rounded.Precision
     ( Precision(..)
     , reifyPrecision
-    , bits
-    , bytes
     , Bytes
     ) where
 
@@ -34,7 +32,6 @@ import Foreign.C.Types
 import GHC.Types
 import GHC.TypeLits
 import GHC.Prim
-import Language.Haskell.TH hiding (reify)
 
 -- | This class is used to specify the number of bits of precision that are maintained in the
 -- significand of a properly 'Numeric.Rounded.Rounded' floating point number.
@@ -69,24 +66,6 @@ data Bytes (n :: Nat)
 
 instance KnownNat n => Precision (Bytes n) where
   precision _ = max 2 $ 8 * fromInteger (natVal (undefined :: Bytes n))
-
--- | Specify a number of bits of 'Precision' in the significand.
---
--- @type Huge r = 'Rounded' r $('bits' 512)@
---
--- expands to
---
--- @type Huge r = 'Rounded' r 512@
---
--- using @DataKinds@, but can be more useful if you need to do arithmetic at TH evaluation time.
-bits :: Int -> Q Type
-bits = litT . numTyLit . toInteger
-
--- | Specify a number of bytes of 'Precision' in the significand.
---
--- @type Huge r = 'Rounded' r $('bytes' 64)@
-bytes :: Int -> Q Type
-bytes = bits . (*8)
 
 data ReifiedPrecision (s :: *)
 
