@@ -157,18 +157,20 @@ mpfrHooks = autoconfUserHooks
     createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1.a") objects
     runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1.a"]
 
-    putStrLn "Mangling static library (prof)..."
-    inDirectory (distDir </> "tmp") $ do
-      runOrBomb "ar" ["-x", distDir </> "build" </> "libHSrounded-0.1_p.a"]
-      runOrBomb "ar" ["-x", distDir </> "lib" </> "libmpfr.a"]
+    profExists <- doesFileExist $ distDir </> "build" </> "libHSrounded-0.1_p.a"
+    when profExists $ do
+      putStrLn "Mangling static library (prof)..."
+      inDirectory (distDir </> "tmp") $ do
+        runOrBomb "ar" ["-x", distDir </> "build" </> "libHSrounded-0.1_p.a"]
+        runOrBomb "ar" ["-x", distDir </> "lib" </> "libmpfr.a"]
 
-    objects <- pathsWithSuffix ".o" $ distDir </> "tmp"
-    --forM_ objects $ \o -> do
-    --  runOrBomb "mv" [o, o <.> "tmp"]
-    --  runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
+      objects <- pathsWithSuffix ".o" $ distDir </> "tmp"
+      --forM_ objects $ \o -> do
+      --  runOrBomb "mv" [o, o <.> "tmp"]
+      --  runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
 
-    createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1_p.a") objects
-    runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1_p.a"]
+      createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1_p.a") objects
+      runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1_p.a"]
 
     postBuild simpleUserHooks args flags pkg_descr lbi
 
