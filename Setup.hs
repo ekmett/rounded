@@ -72,7 +72,7 @@ configureMpfr :: FilePath -> IO ()
 configureMpfr distDir =
   inDirectory mpfrRoot $ do
     putStrLn $ "--> Configuring MPFR " ++ mpfrVersion ++ "..."
-    runOrBomb "sh" ["configure", "--prefix=" ++ distDir]
+    runOrBomb "sh" ["configure", "--with-gmp=/usr/local", "--prefix=" ++ distDir]
 
 makeMpfr :: FilePath -> IO ()
 makeMpfr distDir =
