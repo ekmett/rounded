@@ -1,15 +1,17 @@
 name:               rounded
 version:            0.1
-synopsis:           Correctly-rounded arbitrary-precision floating-point arithmetic for GHC 7.6.1 using DataKinds
+synopsis:           Correctly-rounded arbitrary-precision floating-point arithmetic
 homepage:           http://github.com/ekmett/rounded
 bug-reports:        http://github.com/ekmett/rounded/issues
 license:            LGPL
 license-file:       LICENSE
 author:             Edward A. Kmett, Daniel G. Peebles
 maintainer:         Edward A. Kmett <ekmett@gmail.com>
+copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles
 category:           Numeric, Math
 build-type:         Custom
 cabal-version:      >= 1.9.2
+tested-with:        GHC == 7.8.1
 extra-source-files: cbits/mkMpfrDerivedConstants.c, cbits/alloc.c
 description:
     This package provides numeric instances for MPFR that use
@@ -18,6 +20,8 @@ description:
     to choose a 'Rounding' and 'Precision'. For those that do not want to
     use reflection, explicit instances are provided for common precisions
     and for the built-in rounding modes.
+    .
+    This package should link correctly on either MacOS X or Linux with GHC 7.8.1 or later.
     .
     >>> import Numeric.Rounded
     >>> :set -XDataKinds

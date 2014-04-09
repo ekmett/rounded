@@ -8,11 +8,12 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# OPTIONS_HADDOCK not-home #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Rounded.Rounding
--- Copyright   :  (C) 2012 Edward Kmett
--- License     :  LPGPL
+-- Copyright   :  (C) 2012-2014 Edward Kmett
+-- License     :  LGPL
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  experimental
 -- Portability :  non-portable
@@ -26,9 +27,7 @@ module Numeric.Rounded.Rounding
   ) where
 
 import Data.Data
-import Data.Proxy
 import Data.Singletons
-import GHC.Prim
 
 data RoundingMode
   = TowardNearestWithTiesAwayFromZero
@@ -40,14 +39,14 @@ data RoundingMode
   | Faithfully
   deriving (Eq,Ord,Show,Read,Data,Typeable)
 
-class Rounding (r :: RoundingMode) where mode# :: p r -> Int#
-instance Rounding TowardNearest where mode# _ = 0#
-instance Rounding TowardZero    where mode# _ = 1#
-instance Rounding TowardInf     where mode# _ = 2#
-instance Rounding TowardNegInf  where mode# _ = 3#
-instance Rounding AwayFromZero  where mode# _ = 4#
-instance Rounding Faithfully    where mode# _ = 5#
-instance Rounding TowardNearestWithTiesAwayFromZero where mode# _ = -1#
+class Rounding (r :: RoundingMode) where rounding :: Proxy r -> RoundingMode
+instance Rounding TowardNearest where rounding _ = TowardNearest
+instance Rounding TowardZero    where rounding _ = TowardZero
+instance Rounding TowardInf     where rounding _ = TowardInf
+instance Rounding TowardNegInf  where rounding _ = TowardNegInf
+instance Rounding AwayFromZero  where rounding _ = AwayFromZero
+instance Rounding Faithfully    where rounding _ = Faithfully
+instance Rounding TowardNearestWithTiesAwayFromZero where rounding _ = TowardNearestWithTiesAwayFromZero
 
 instance Enum RoundingMode where
   toEnum (-1) = TowardNearestWithTiesAwayFromZero

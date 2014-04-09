@@ -13,8 +13,8 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Rounded
--- Copyright   :  (C) 2012 Edward Kmett, Daniel Peebles
--- License     :  LGPL (see the file LICENSE)
+-- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
+-- License     :  LGPL
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  experimental
 -- Portability :  non-portable
@@ -53,6 +53,14 @@ import Control.Parallel()
 import Numeric.Rounded.Rounding
 import System.IO.Unsafe()
 import Numeric
+
+prec# :: forall proxy p. Precision p => proxy p -> Int#
+prec# p = case precision p of
+  I# i# -> i#
+
+mode# :: forall proxy r. Rounding r => proxy r -> Int#
+mode# = case fromEnum (rounding (Proxy :: Proxy r)) of
+  I# i# -> \_ -> i#
 
 type CSignPrec#  = Int#
 type CPrecision# = Int#
@@ -268,7 +276,7 @@ instance (Rounding r, Precision p) => Real (Rounded r p) where
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
   properFraction = undefined
 
-foreign import prim "mpfr_cmm_get_z_2exp" mpfrDecode# 
+foreign import prim "mpfr_cmm_get_z_2exp" mpfrDecode#
   :: CSignPrec# -> CExp# -> ByteArray# -> (# CExp#, Int#, ByteArray# #)
 
 foreign import prim "mpfr_cmm_init_z_2exp" mpfrEncode#
@@ -290,14 +298,14 @@ instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
   floatDigits _r = I# (prec# (Proxy::Proxy p))
 
   -- FIXME: this should do for now, but the real ones can change...
-  floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32)) 
+  floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32))
 
   decodeFloat (Rounded sp e l) = case mpfrDecode# sp e l of (# i, s, d #) -> (J# s d, I# i)
 
   -- FIXME: encodeFloat appears broken, but I haven't figured out how yet
   encodeFloat (S# i)   (I# e) = r where
     r = case int2Integer# i of
-          (# s, d #) -> case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of 
+          (# s, d #) -> case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of
             (# s', e', l #) -> Rounded s' e' l
   encodeFloat (J# s d) (I# e) = r where
     r = case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of

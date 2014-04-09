@@ -10,11 +10,12 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_HADDOCK not-home #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Rounded.Precision
 -- Copyright   :  (C) 2012 Edward Kmett
--- License     :  BSD-style (see the file LICENSE)
+-- License     :  LGPL
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  experimental
 -- Portability :  non-portable
@@ -22,7 +23,6 @@
 ----------------------------------------------------------------------------
 module Numeric.Rounded.Precision
   ( Precision(..)
-  , prec#
   , reifyPrecision
   , Bytes
   ) where
@@ -30,18 +30,12 @@ module Numeric.Rounded.Precision
 import Data.Proxy
 import Data.Reflection
 import Foreign.C.Types
-import GHC.Types
 import GHC.TypeLits
-import GHC.Prim
 
 -- | This class is used to specify the number of bits of precision that are maintained in the
 -- significand of a properly 'Numeric.Rounded.Rounded' floating point number.
 class Precision p where
   precision :: proxy p -> Int
-
-prec# :: forall proxy p. Precision p => proxy p -> Int#
-prec# p = case precision p of
-  I# i# -> i#
 
 floatPrecision :: RealFloat a => p a -> Int
 floatPrecision p = fromIntegral (floatDigits (proxyArg p)) where
