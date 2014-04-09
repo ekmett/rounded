@@ -45,7 +45,7 @@ library
     tagged           >= 0.4.4 && < 0.8,
     template-haskell >= 2.4   && < 2.10
 
-  ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
+  ghc-options:     -Wall -Werror -O2 -fspec-constr -funbox-strict-fields
   c-sources:       cbits/mpfr-wrappers.cmm
   include-dirs:    dist/include
   hs-source-dirs:  src

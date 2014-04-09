@@ -30,7 +30,6 @@ module Numeric.Rounded.Precision
 
 import Data.Proxy
 import Data.Reflection
-import Data.Singletons
 import Foreign.C.Types
 import GHC.Types
 import GHC.TypeLits
@@ -69,7 +68,7 @@ instance KnownNat n => Precision (n :: Nat) where
 data Bytes (n :: Nat)
 
 instance KnownNat n => Precision (Bytes n) where
-  precision p = max 2 $ 8 * fromInteger (natVal (undefined :: Bytes n))
+  precision _ = max 2 $ 8 * fromInteger (natVal (undefined :: Bytes n))
 
 -- | Specify a number of bits of 'Precision' in the significand.
 --
