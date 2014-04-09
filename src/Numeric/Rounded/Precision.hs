@@ -21,10 +21,11 @@
 --
 ----------------------------------------------------------------------------
 module Numeric.Rounded.Precision
-    ( Precision(..)
-    , reifyPrecision
-    , Bytes
-    ) where
+  ( Precision(..)
+  , prec#
+  , reifyPrecision
+  , Bytes
+  ) where
 
 import Data.Proxy
 import Data.Reflection
@@ -37,9 +38,10 @@ import GHC.Prim
 -- significand of a properly 'Numeric.Rounded.Rounded' floating point number.
 class Precision p where
   precision :: proxy p -> Int
-  prec# :: proxy p -> Int#
-  prec# p = case precision p of
-    I# i# -> i#
+
+prec# :: forall proxy p. Precision p => proxy p -> Int#
+prec# p = case precision p of
+  I# i# -> i#
 
 floatPrecision :: RealFloat a => p a -> Int
 floatPrecision p = fromIntegral (floatDigits (proxyArg p)) where
