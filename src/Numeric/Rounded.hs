@@ -9,6 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE UnliftedFFITypes #-}
 -----------------------------------------------------------------------------
 -- |
@@ -31,13 +32,19 @@ module Numeric.Rounded
     , Bytes
     , reifyPrecision
     -- * Rounding
-    , Rounding
+    , Rounding(rounding)
     , RoundingMode(..)
     , reifyRounding
     -- * Useful Constants
     , kLog2
     , kEuler
     , kCatalan
+    -- * Combinators that are oblivious to precision
+    , (.+.)
+    , (.-.)
+    , (.*.)
+    , abs'
+    , negate'
     ) where
 
 import Data.Proxy
@@ -74,7 +81,11 @@ prec_bit
   where b63 = bit 63
         b31 = bit 31
 
+type role Rounded phantom nominal
+
 -- | A properly rounded floating-point number with a given rounding mode and precision.
+--
+-- you can 'Data.Coerce.coerce' to change rounding modes, but not precision.
 data Rounded (r :: RoundingMode) p = Rounded
   { roundedSignPrec :: CSignPrec# -- Sign# << 64/32 | Precision#
   , roundedExp      :: CExp#
@@ -133,15 +144,36 @@ instance Rounding r => Ord (Rounded r p) where
   (>=) = cmp mpfrGreaterEqual#
   (<) = cmp mpfrLess#
   (>) = cmp mpfrGreater#
+  -- we could shed the Rounding r dependency if we dropped these
   min = binary mpfrMin#
   max = binary mpfrMax#
 
 foreign import prim "mpfr_cmm_sgn" mpfrSgn# :: CSignPrec# -> CExp# -> ByteArray# -> Int#
 
+infixl 6 .+., .-.
+infixl 7 .*.
+
+(.+.) :: Rounding r => Rounded r p -> Rounded r p -> Rounded r p
+(.+.) = binary mpfrAdd#
+
+(.-.) :: Rounding r => Rounded r p -> Rounded r p -> Rounded r p
+(.-.) = binary mpfrSub#
+
+(.*.) :: Rounding r => Rounded r p -> Rounded r p -> Rounded r p
+(.*.) = binary mpfrMul#
+
+abs' :: Rounded r p -> Rounded r p
+abs' (Rounded s e l) = case I# s .&. complement prec_bit of
+  I# s' -> Rounded s' e l
+
+negate' :: Rounding r => Rounded r p -> Rounded r p
+negate' = unary mpfrNeg#
+
 instance (Rounding r, Precision p) => Num (Rounded r p) where
   (+) = binary mpfrAdd#
   (-) = binary mpfrSub#
   (*) = binary mpfrMul#
+  negate = unary mpfrNeg#
   fromInteger (S# i) = case mpfrFromInt# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) i of
     (# s, e, l #) -> Rounded s e l
   fromInteger (J# i xs) = case mpfrFromInteger# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) i xs of
@@ -217,6 +249,7 @@ type Unary
     CSignPrec# -> CExp# -> ByteArray# ->
     (# CSignPrec#, CExp#, ByteArray# #)
 
+foreign import prim "mpfr_cmm_neg"   mpfrNeg#     :: Unary
 foreign import prim "mpfr_cmm_log"   mpfrLog#     :: Unary
 foreign import prim "mpfr_cmm_exp"   mpfrExp#     :: Unary
 foreign import prim "mpfr_cmm_sqrt"  mpfrSqrt#    :: Unary

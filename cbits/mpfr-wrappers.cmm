@@ -355,6 +355,7 @@ again:                                                            \
   MPFR_RETURN1(ret);                                              \
 }
 
+MPFR_TAKE1_RET1(mpfr_cmm_neg,  mpfr_neg)
 MPFR_TAKE1_RET1(mpfr_cmm_log,  mpfr_log)
 MPFR_TAKE1_RET1(mpfr_cmm_exp,  mpfr_exp)
 MPFR_TAKE1_RET1(mpfr_cmm_sqrt, mpfr_sqrt)
