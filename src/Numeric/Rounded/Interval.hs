@@ -17,6 +17,14 @@ data Interval p
   | Empty
   deriving (Typeable, Generic)
 
+
+-- TODO: take from mpfr
+fmod :: RealFrac a => a -> a -> a
+fmod a b = a - q*b where
+  q = realToFrac (truncate $ a / b :: Integer)
+{-# INLINE fmod #-}
+
+
 instance Precision p => Num (Interval p) where
   I a b + I a' b' = I (a + a') (b + b')
   _ + _ = Empty
@@ -600,3 +608,79 @@ instance Precision p => Fractional (Interval p) where
   {-# INLINE recip #-}
   fromRational = I <$> fromRational <*> fromRational
   {-# INLINE fromRational #-}
+
+midpoint :: Precision p => Interval p -> Rounded TowardNegInf p
+midpoint (I a b) = a + (coerce b - a) / 2
+midpoint _ = 0/0 -- TODO: use mpfr's nan
+
+instance Precision p => RealFrac (Interval p) where
+  properFraction x = (b, x - fromIntegral b)
+    where b = truncate (midpoint x)
+  {-# INLINE properFraction #-}
+  ceiling x = ceiling (sup x)
+  {-# INLINE ceiling #-}
+  floor x = floor (inf x)
+  {-# INLINE floor #-}
+  round x = round (midpoint x)
+  {-# INLINE round #-}
+  truncate x = truncate (midpoint x)
+  {-# INLINE truncate #-}
+
+instance Precision p => Floating (Interval p) where
+  pi = I pi pi
+  {-# INLINE pi #-}
+  exp = increasing exp
+  {-# INLINE exp #-}
+  log (I a b) = (if a > 0 then log a else negInfinity) ... log b
+  log Empty = Empty
+  {-# INLINE log #-}
+  cos Empty = Empty
+  cos x
+    | width t >= pi = negate 1 ... 1
+    | inf t >= pi = negate $ cos (t - pi)
+    | sup t <= pi = decreasing cos t
+    | sup t <= 2 * pi = negate 1 ... cos (((pi * 2 - sup t) `min` coerce (inf t)))
+    | otherwise = negate 1 ... 1
+    where
+      t = fmod x (pi * 2)
+  {-# INLINE cos #-}
+  sin Empty = Empty
+  sin x = cos (x - pi / 2)
+  {-# INLINE sin #-}
+  tan Empty = Empty
+  tan x
+    | inf t' <= negate pi / 2 || sup t' >= pi / 2 = whole
+    | otherwise = increasing tan x
+    where
+      t = x `fmod` pi
+      t' | t >= pi / 2 = t - pi
+         | otherwise   = t
+  {-# INLINE tan #-}
+  asin Empty = Empty
+  asin (I a b)
+    | b < -1 || a > 1 = Empty
+    | otherwise =
+      (if a <= -1 then negate pi / 2 else asin a)
+      ...
+      (if b >= 1 then pi / 2 else asin b)
+  {-# INLINE asin #-}
+  acos Empty = Empty
+  acos (I a b)
+    | b < -1 || a > 1 = Empty
+    | otherwise =
+      (if b >= 1 then 0 else acos (coerce b))
+      ...
+      (if a < -1 then pi else acos (coerce a))
+  {-# INLINE acos #-}
+  atan = increasing atan
+  {-# INLINE atan #-}
+  sinh = increasing sinh
+  {-# INLINE sinh #-}
+  cosh Empty = Empty
+  cosh x@(I a b)
+    | b < 0  = decreasing cosh x
+    | a >= 0 = increasing cosh x
+    | otherwise  = I 0 $ cosh $ if negate a > coerce b then coerce a else b
+  {-# INLINE cosh #-}
+  tanh = increasing tanh
+  {-# INLINE tanh #-}
