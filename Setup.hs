@@ -124,7 +124,7 @@ mpfrHooks = autoconfUserHooks
     programExists <- doesFileExist $ distDir </> "mkMpfrDerivedConstants"
     unless programExists $ do
       Just gcc <- programFindLocation gccProgram normal defaultProgramSearchPath
-      runOrBomb gcc ["cbits/mkMpfrDerivedConstants.c", "-I" ++ distDir </> "include", "-o", distDir </> "mkMpfrDerivedConstants"]
+      runOrBomb gcc ["cbits/mkMpfrDerivedConstants.c", "-I/usr/local/Cellar/gmp/5.1.3/include", "-I" ++ distDir </> "include", "-o", distDir </> "mkMpfrDerivedConstants"]
     headerExists <- doesFileExist $ distDir </> "include" </> "MpfrDerivedConstants.h"
     unless headerExists $ do
       header <- readProcess (distDir </> "mkMpfrDerivedConstants") [] ""

@@ -54,4 +54,5 @@ library
   ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
   c-sources:       cbits/mpfr-wrappers.cmm
   include-dirs:    dist/include
+
   hs-source-dirs:  src
