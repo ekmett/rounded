@@ -1,6 +1,7 @@
 /* --------------------------------------------------------------------------
  *
  * (c) The GHC Team, 1992-2004
+ * (c) Edward Kmett and Daniel Peebles 2012-2014
  *
  * mkMpfrDerivedConstants.c
  *
