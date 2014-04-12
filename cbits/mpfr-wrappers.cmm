@@ -143,7 +143,6 @@ again:
   MPFR_RETURN1(mpfr);
 }
 
-
 mpfr_cmm_get_d(W_ rnd, W_ ps, W_ exp, P_ limbs)
 {
   D_ ret;
@@ -181,7 +180,7 @@ again:
   // Since we're immutable, we could really just reuse the limbs, but I haven't figured
   // out how to do that reliably yet.
   (exp) = ccall mpfr_get_z_2exp(mpz "ptr", mpfr "ptr");
-  
+
   return(
     exp,
     TO_W_(MP_INT__mp_size(mpz)),
@@ -193,7 +192,6 @@ mpfr_cmm_sgn(W_ ps, W_ exp, W_ limbs)
   // arguments: R1 = prec * sign, R2 = exp, R3 = limbs
   W_ ret, mpfr;
 
-  
 again:
   STK_CHK_GEN_N(SIZEOF_MPFR);
   MAYBE_GC(again);
@@ -222,8 +220,8 @@ again:
   op1 = Sp - 1 * SIZEOF_MPFR;
   op2 = Sp - 2 * SIZEOF_MPFR;
 
-	MPFR_REBUILD(ps1, exp1, limbs1, op1);
-	MPFR_REBUILD(ps2, exp2, limbs2, op2);
+  MPFR_REBUILD(ps1, exp1, limbs1, op1);
+  MPFR_REBUILD(ps2, exp2, limbs2, op2);
 
   ccall mpfr_clear_erangeflag();
   (ret) = ccall mpfr_cmp(op1 "ptr",op2 "ptr");
@@ -249,7 +247,7 @@ again:
 
   mpfr = Sp - 1 * SIZEOF_MPFR;
 
-	MPFR_REBUILD(ps, exp, limbs, mpfr)
+  MPFR_REBUILD(ps, exp, limbs, mpfr)
 
   W_ dec;
   dec = Sp - 1 * SIZEOF_MPFR - WDS(1);
@@ -270,7 +268,7 @@ again:                                                        \
   MAYBE_GC(again);                                            \
   op1 = Sp - 1 * SIZEOF_MPFR;                                 \
   op2 = Sp - 2 * SIZEOF_MPFR;                                 \
-	MPFR_REBUILD(ps1, exp1, limbs1, op1);                       \
+  MPFR_REBUILD(ps1, exp1, limbs1, op1);                       \
   MPFR_REBUILD(ps2, exp2, limbs2, op2);                       \
   (ret) = ccall cmp(op1 "ptr", op2 "ptr");                    \
   return (ret);                                               \
@@ -332,6 +330,28 @@ MPFR_TAKE2_RET1(mpfr_cmm_div, mpfr_div)
 MPFR_TAKE2_RET1(mpfr_cmm_min, mpfr_min)
 MPFR_TAKE2_RET1(mpfr_cmm_max, mpfr_max)
 MPFR_TAKE2_RET1(mpfr_cmm_atan2, mpfr_atan2)
+
+#define MPFR_INPLACE(name,mpfr_fun)          \
+name(W_ ps, W_ exp, P_ limbs)                \
+{                                            \
+  W_ prec, ret;                              \
+                                             \
+  prec = ps & ~(1 << PREC_SHIFT);            \
+                                             \
+again:                                       \
+  STK_CHK_GEN_N(SIZEOF_MPFR);                \
+  MAYBE_GC(again);                           \
+                                             \
+  ret = Sp - 1 * SIZEOF_MPFR;                \
+  MPFR_REBUILD(ps, exp, limbs, ret);         \
+                                             \
+  ccall mpfr_fun(ret "ptr");                 \
+                                             \
+  MPFR_RETURN1(ret);                         \
+}
+
+MPFR_INPLACE(mpfr_cmm_nextabove, mpfr_nextabove)
+MPFR_INPLACE(mpfr_cmm_nextbelow, mpfr_nextbelow)
 
 #define MPFR_TAKE1_RET1(name,mpfr_fun)                            \
 name(W_ rnd, W_ ps, W_ exp, P_ limbs)                             \

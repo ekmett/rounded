@@ -46,6 +46,8 @@ module Numeric.Rounded
     , abs'
     , negate'
     , decodeFloat'
+    , succUlp
+    , predUlp
     ) where
 
 import Data.Proxy
@@ -272,6 +274,20 @@ unary f (Rounded s e l) = r where
   r = case f (mode# (proxyRounding r)) s e l of
     (# s', e', l' #) -> Rounded s' e' l'
 {-# INLINE unary #-}
+
+type Inplace = CSignPrec# -> CExp# -> ByteArray# -> (# CSignPrec#, CExp#, ByteArray# #)
+
+foreign import prim "mpfr_cmm_nextabove" mpfrNextAbove# :: Inplace
+foreign import prim "mpfr_cmm_nextbelow" mpfrNextBelow# :: Inplace
+
+inplace :: Inplace -> Rounded r p -> Rounded r p
+inplace f (Rounded s e l) = case f s e l of
+  (# s', e', l' #) -> Rounded s' e' l'
+{-# INLINE inplace #-}
+
+succUlp, predUlp :: Rounded r p -> Rounded r p
+succUlp = inplace mpfrNextAbove#
+predUlp = inplace mpfrNextBelow#
 
 type Constant = CRounding# -> CPrecision# -> (# CSignPrec#, CExp#, ByteArray# #)
 
