@@ -45,6 +45,7 @@ module Numeric.Rounded
     , (.*.)
     , abs'
     , negate'
+    , decodeFloat'
     ) where
 
 import Data.Proxy
@@ -144,7 +145,7 @@ instance Rounding r => Ord (Rounded r p) where
   (>=) = cmp mpfrGreaterEqual#
   (<) = cmp mpfrLess#
   (>) = cmp mpfrGreater#
-  -- we could shed the Rounding r dependency if we dropped these
+  -- we shed the Rounding r dependency if we drop these, but give wrong answers on negative 0
   min = binary mpfrMin#
   max = binary mpfrMax#
 
@@ -300,14 +301,17 @@ instance (Rounding r, Precision p) => Floating (Rounded r p) where
   atanh = unary mpfrArcTanh#
   acosh = unary mpfrArcCosh#
 
+toRational' :: Rounded r p -> Rational
+toRational' r
+   | e > 0     = fromIntegral (s `shiftL` e)
+   | otherwise = s % (1 `shiftL` negate e)
+   where (s, e) = decodeFloat' r
+
 instance (Rounding r, Precision p) => Real (Rounded r p) where
-  toRational r = if e > 0
-                   then fromIntegral (s `shiftL` e)
-                   else s % (1 `shiftL` negate e)
-    where (s, e) = decodeFloat r
+  toRational = toRational'
 
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
-  properFraction = undefined
+  properFraction = undefined -- TODO
 
 foreign import prim "mpfr_cmm_get_z_2exp" mpfrDecode#
   :: CSignPrec# -> CExp# -> ByteArray# -> (# CExp#, Int#, ByteArray# #)
@@ -326,6 +330,9 @@ foreign import prim "mpfr_cmm_inf_p"  mpfrIsInf#  :: Test
 foreign import prim "mpfr_cmm_zero_p" mpfrIsZero# :: Test
 foreign import prim "mpfr_cmm_atan2"  mpfrArcTan2# :: Binary
 
+decodeFloat' :: Rounded r p -> (Integer, Int)
+decodeFloat' (Rounded sp e l) = case mpfrDecode# sp e l of (# i, s, d #) -> (J# s d, I# i)
+
 instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
   floatRadix  _ = 2
   floatDigits _r = I# (prec# (Proxy::Proxy p))
@@ -333,7 +340,7 @@ instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
   -- FIXME: this should do for now, but the real ones can change...
   floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32))
 
-  decodeFloat (Rounded sp e l) = case mpfrDecode# sp e l of (# i, s, d #) -> (J# s d, I# i)
+  decodeFloat = decodeFloat'
 
   -- FIXME: encodeFloat appears broken, but I haven't figured out how yet
   encodeFloat (S# i)   (I# e) = r where

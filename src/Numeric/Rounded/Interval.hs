@@ -1,8 +1,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE PolyKinds #-}
 module Numeric.Rounded.Interval where
 
+import Control.Applicative
 import Numeric.Rounded
 import Data.Coerce
 import Data.Typeable
@@ -12,6 +15,38 @@ data Interval p
   = I (Rounded TowardNegInf p) (Rounded TowardInf p)
   | Empty
   deriving (Typeable, Generic)
+
+instance Precision p => Num (Interval p) where
+  I a b + I a' b' = I (a + a') (b + b')
+  _ + _ = Empty
+  I a b - I a' b' = I (a - coerce b') (b - coerce a')
+  _ - _ = Empty
+  negate (I a b) = I (coerce (negate b)) (coerce (negate a))
+  negate Empty = Empty
+  I a b * I a' b' =
+    I (minimum [a * a', a * coerce b', coerce b * a', coerce b * coerce b'])
+      (maximum [coerce a * coerce a', coerce a * b', b * coerce a', b * b'])
+  _ * _ = Empty
+  abs x@(I a b)
+    | a >= 0    = x
+    | b <= 0    = negate x
+    | otherwise = I 0 (max (negate (coerce a)) b)
+  abs Empty = Empty
+  {-# INLINE abs #-}
+  signum = increasing signum
+  {-# INLINE signum #-}
+  fromInteger = I <$> fromInteger <*> fromInteger
+
+-- | lift a monotone increasing function over a given interval
+increasing :: (forall r. Rounding r => Rounded r a -> Rounded r b) -> Interval a -> Interval b
+increasing f (I a b) = I (f a) (f b)
+increasing _ Empty = Empty
+
+-- -- | lift a monotone decreasing function over a given interval
+decreasing :: (forall r. Rounding r => Rounded r a -> Rounded r b) -> Interval a -> Interval b
+decreasing f (I a b) = I (coerce (f b)) (coerce (f a))
+decreasing _ Empty = Empty
+--
 
 (...) :: Rounded TowardNegInf p -> Rounded TowardInf p -> Interval p
 a ... b
@@ -69,14 +104,6 @@ null Empty = True
 null _ = False
 {-# INLINE null #-}
 
--- | A singleton point
---
--- >>> singleton 1
--- 1 ... 1
-singleton :: Rounded r p -> Interval p
-singleton a = I (coerce a) (coerce a)
-{-# INLINE singleton #-}
-
 -- | The infimum (lower bound) of an interval
 --
 -- >>> inf (1.0 ... 20.0)
@@ -116,8 +143,37 @@ singular (I a b) = coerce a == b
 {-# INLINE singular #-}
 
 instance Eq (Interval p) where
-  -- (==) = (==!)
-  -- {-# INLINE (==) #-}
+  (==) = (==!)
+  {-# INLINE (==) #-}
+
+instance Precision p => Ord (Interval p) where
+  compare Empty Empty = EQ
+  compare Empty _ = LT
+  compare _ Empty = GT
+  compare (I ax bx) (I ay by)
+    | coerce bx < ay = LT
+    | coerce ax > by = GT
+    | coerce bx == ay && coerce ax == by = EQ
+    | otherwise = error "ambiguous comparison"
+  {-# INLINE compare #-}
+
+  max (I a b) (I a' b') = I (max a a') (max b b')
+  max Empty i = i
+  max i Empty = i
+  {-# INLINE max #-}
+
+  min (I a b) (I a' b') = I (min a a') (min b b')
+  min Empty _ = Empty
+  min _ Empty = Empty
+  {-# INLINE min #-}
+
+-- | 'realToFrac' will use the midpoint
+instance Precision p => Real (Interval p) where
+  toRational Empty = error "empty interval"
+  toRational (I ra rb) = a + (b - a) / 2 where
+    a = toRational ra
+    b = toRational rb
+  {-# INLINE toRational #-}
 
 instance Precision p => Show (Interval p) where
   showsPrec _ Empty = showString "Empty"
@@ -238,6 +294,240 @@ deflate x (I a b) | a' <= b'  = I a' b'
 
 -}
 
-instance Precision p => Num (Interval p) where
-  I a b + I a' b' = I (a + a') (b + b')
-  _ + _ = Empty
+-- | For all @x@ in @X@, @y@ in @Y@. @x '<' y@
+--
+-- >>> (5 ... 10 :: Interval Double) <! (20 ... 30 :: Interval Double)
+-- True
+--
+-- >>> (5 ... 10 :: Interval Double) <! (10 ... 30 :: Interval Double)
+-- False
+--
+-- >>> (20 ... 30 :: Interval Double) <! (5 ... 10 :: Interval Double)
+-- False
+(<!)  :: Precision p => Interval p -> Interval p -> Bool
+I _ bx <! I ay _ = coerce bx < ay
+_ <! _ = True
+{-# INLINE (<!) #-}
+
+-- | For all @x@ in @X@, @y@ in @Y@. @x '<=' y@
+--
+-- >>> (5 ... 10 :: Interval Double) <=! (20 ... 30 :: Interval Double)
+-- True
+--
+-- >>> (5 ... 10 :: Interval Double) <=! (10 ... 30 :: Interval Double)
+-- True
+--
+-- >>> (20 ... 30 :: Interval Double) <=! (5 ... 10 :: Interval Double)
+-- False
+(<=!) :: Precision p => Interval p -> Interval p -> Bool
+I _ bx <=! I ay _ = coerce bx <= ay
+_ <=! _ = True
+{-# INLINE (<=!) #-}
+
+-- | For all @x@ in @X@, @y@ in @Y@. @x '==' y@
+--
+-- Only singleton intervals or empty intervals can return true
+--
+-- >>> (singleton 5 :: Interval Double) ==! (singleton 5 :: Interval Double)
+-- True
+--
+-- >>> (5 ... 10 :: Interval Double) ==! (5 ... 10 :: Interval Double)
+-- False
+(==!) :: Interval p -> Interval p -> Bool
+I ax bx ==! I ay by = coerce bx == ay && coerce ax == by
+_ ==! _ = True
+{-# INLINE (==!) #-}
+
+-- | For all @x@ in @X@, @y@ in @Y@. @x '/=' y@
+--
+-- >>> (5 ... 15 :: Interval Double) /=! (20 ... 40 :: Interval Double)
+-- True
+--
+-- >>> (5 ... 15 :: Interval Double) /=! (15 ... 40 :: Interval Double)
+-- False
+(/=!) :: Interval p -> Interval p -> Bool
+I ax bx /=! I ay by = bx < coerce ay || coerce ax > by
+_ /=! _ = True
+{-# INLINE (/=!) #-}
+
+-- | For all @x@ in @X@, @y@ in @Y@. @x '>' y@
+--
+-- >>> (20 ... 40 :: Interval Double) >! (10 ... 19 :: Interval Double)
+-- True
+--
+-- >>> (5 ... 20 :: Interval Double) >! (15 ... 40 :: Interval Double)
+-- False
+(>!) :: Precision p => Interval p -> Interval p -> Bool
+I ax _ >! I _ by = ax > coerce by
+_ >! _ = True
+{-# INLINE (>!) #-}
+
+-- | For all @x@ in @X@, @y@ in @Y@. @x '>=' y@
+--
+-- >>> (20 ... 40 :: Interval Double) >=! (10 ... 20 :: Interval Double)
+-- True
+--
+-- >>> (5 ... 20 :: Interval Double) >=! (15 ... 40 :: Interval Double)
+-- False
+(>=!) :: Precision p => Interval p -> Interval p -> Bool
+I ax _ >=! I _ by = coerce ax >= by
+_ >=! _ = True
+
+-- | Determine if a point is in the interval.
+--
+-- >>> elem 3.2 (1 ... 5)
+-- True
+--
+-- >>> elem 5 (1 ... 5)
+-- True
+--
+-- >>> elem 1 (1 ... 5)
+-- True
+--
+-- >>> elem 8 (1 ... 5)
+-- False
+--
+-- >>> elem 5 empty
+-- False
+--
+elem :: Ord a => a -> Interval a -> Bool
+elem x (I a b) = x >= a && x <= b
+elem _ Empty = False
+{-# INLINE elem #-}
+
+-- | Determine if a point is not included in the interval
+--
+-- >>> notElem 8 (1.0 ... 5.0)
+-- True
+--
+-- >>> notElem 1.4 (1.0 ... 5.0)
+-- False
+--
+-- And of course, nothing is a member of the empty interval.
+--
+-- >>> notElem 5 empty
+-- True
+notElem :: Ord a => a -> Interval a -> Bool
+notElem x xs = not (elem x xs)
+{-# INLINE notElem #-}
+
+
+-- | For all @x@ in @X@, @y@ in @Y@. @x `op` y@
+certainly :: Precision p => (forall b. Ord b => b -> b -> Bool) -> Interval p -> Interval p -> Bool
+certainly cmp l r
+    | lt && eq && gt = True
+    | lt && eq       = l <=! r
+    | lt &&       gt = l /=! r
+    | lt             = l <!  r
+    |       eq && gt = l >=! r
+    |       eq       = l ==! r
+    |             gt = l >!  r
+    | otherwise      = False
+    where
+        lt = cmp False True
+        eq = cmp True True
+        gt = cmp True False
+{-# INLINE certainly #-}
+
+-- | Does there exist an @x@ in @X@, @y@ in @Y@ such that @x '<' y@?
+(<?) :: Precision p => Interval p -> Interval p -> Bool
+Empty <? _ = False
+_ <? Empty = False
+I ax _ <? I _ by = coerce ax < by
+{-# INLINE (<?) #-}
+
+-- | Does there exist an @x@ in @X@, @y@ in @Y@ such that @x '<=' y@?
+(<=?) :: Precision p => Interval p -> Interval p -> Bool
+Empty <=? _ = False
+_ <=? Empty = False
+I ax _ <=? I _ by = coerce ax <= by
+{-# INLINE (<=?) #-}
+
+-- | Does there exist an @x@ in @X@, @y@ in @Y@ such that @x '==' y@?
+(==?) :: Interval a -> Interval a -> Bool
+I ax bx ==? I ay by = coerce ax <= by && coerce bx >= ay
+_ ==? _ = False
+{-# INLINE (==?) #-}
+
+-- | Does there exist an @x@ in @X@, @y@ in @Y@ such that @x '/=' y@?
+(/=?) :: Interval a -> Interval a -> Bool
+I ax bx /=? I ay by = coerce ax /= by || coerce bx /= ay
+_ /=? _ = False
+{-# INLINE (/=?) #-}
+
+-- | Does there exist an @x@ in @X@, @y@ in @Y@ such that @x '>' y@?
+(>?) :: Precision p => Interval p -> Interval p -> Bool
+I _ bx >? I ay _ = bx > coerce ay
+_ >? _ = False
+{-# INLINE (>?) #-}
+
+-- | Does there exist an @x@ in @X@, @y@ in @Y@ such that @x '>=' y@?
+(>=?) :: Precision p => Interval p -> Interval p -> Bool
+I _ bx >=? I ay _ = bx >= coerce ay
+_ >=? _ = False
+{-# INLINE (>=?) #-}
+
+-- | Does there exist an @x@ in @X@, @y@ in @Y@ such that @x `op` y@?
+possibly :: Precision p => (forall b. Ord b => b -> b -> Bool) -> Interval p -> Interval p -> Bool
+possibly cmp l r
+    | lt && eq && gt = True
+    | lt && eq       = l <=? r
+    | lt &&       gt = l /=? r
+    | lt             = l <? r
+    |       eq && gt = l >=? r
+    |       eq       = l ==? r
+    |             gt = l >? r
+    | otherwise      = False
+    where
+        lt = cmp LT EQ
+        eq = cmp EQ EQ
+        gt = cmp GT EQ
+{-# INLINE possibly #-}
+
+-- | Check if interval @X@ totally contains interval @Y@
+--
+-- >>> (20 ... 40 :: Interval Double) `contains` (25 ... 35 :: Interval Double)
+-- True
+--
+-- >>> (20 ... 40 :: Interval Double) `contains` (15 ... 35 :: Interval Double)
+-- False
+contains :: Precision p => Interval p -> Interval p -> Bool
+contains _ Empty = True
+contains (I ax bx) (I ay by) = ax <= ay && by <= bx
+contains Empty I{} = False
+{-# INLINE contains #-}
+
+-- | Flipped version of `contains`. Check if interval @X@ a subset of interval @Y@
+--
+-- >>> (25 ... 35 :: Interval Double) `isSubsetOf` (20 ... 40 :: Interval Double)
+-- True
+--
+-- >>> (20 ... 40 :: Interval Double) `isSubsetOf` (15 ... 35 :: Interval Double)
+-- False
+isSubsetOf :: Precision p => Interval p -> Interval p -> Bool
+isSubsetOf = flip contains
+{-# INLINE isSubsetOf #-}
+
+-- | Calculate the intersection of two intervals.
+--
+-- >>> intersection (1 ... 10 :: Interval Double) (5 ... 15 :: Interval Double)
+-- 5.0 ... 10.0
+intersection :: Precision p => Interval p -> Interval p -> Interval p
+intersection x@(I a b) y@(I a' b')
+  | x /=! y   = Empty
+  | otherwise = I (max a a') (min b b')
+intersection _ _ = Empty
+{-# INLINE intersection #-}
+
+-- | Calculate the convex hull of two intervals
+--
+-- >>> hull (0 ... 10 :: Interval Double) (5 ... 15 :: Interval Double)
+-- 0.0 ... 15.0
+--
+-- >>> hull (15 ... 85 :: Interval Double) (0 ... 10 :: Interval Double)
+-- 0.0 ... 85.0
+hull :: Precision p => Interval p -> Interval p -> Interval p
+hull (I a b) (I a' b') = I (min a a') (max b b')
+hull Empty x = x
+hull x Empty = x
+{-# INLINE hull #-}
