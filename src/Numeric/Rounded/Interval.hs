@@ -10,6 +10,7 @@ import Numeric.Rounded
 import Data.Coerce
 import Data.Typeable
 import GHC.Generics
+import Prelude hiding (elem)
 
 data Interval p
   = I (Rounded TowardNegInf p) (Rounded TowardInf p)
@@ -390,8 +391,8 @@ _ >=! _ = True
 -- >>> elem 5 empty
 -- False
 --
-elem :: Ord a => a -> Interval a -> Bool
-elem x (I a b) = x >= a && x <= b
+elem :: Rounded r p -> Interval p -> Bool
+elem x (I a b) = coerce x >= a && coerce x <= b
 elem _ Empty = False
 {-# INLINE elem #-}
 
@@ -407,7 +408,7 @@ elem _ Empty = False
 --
 -- >>> notElem 5 empty
 -- True
-notElem :: Ord a => a -> Interval a -> Bool
+notElem :: Rounded r p -> Interval p -> Bool
 notElem x xs = not (elem x xs)
 {-# INLINE notElem #-}
 
