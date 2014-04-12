@@ -10,7 +10,7 @@ import Numeric.Rounded
 import Data.Coerce
 import Data.Typeable
 import GHC.Generics
-import Prelude hiding (elem)
+import Prelude hiding (elem, notElem)
 
 data Interval p
   = I (Rounded TowardNegInf p) (Rounded TowardInf p)
@@ -391,7 +391,7 @@ _ >=! _ = True
 -- >>> elem 5 empty
 -- False
 --
-elem :: Rounded r p -> Interval p -> Bool
+elem :: Rounded TowardZero p -> Interval p -> Bool
 elem x (I a b) = coerce x >= a && coerce x <= b
 elem _ Empty = False
 {-# INLINE elem #-}
@@ -408,7 +408,7 @@ elem _ Empty = False
 --
 -- >>> notElem 5 empty
 -- True
-notElem :: Rounded r p -> Interval p -> Bool
+notElem :: Rounded TowardZero p -> Interval p -> Bool
 notElem x xs = not (elem x xs)
 {-# INLINE notElem #-}
 
@@ -532,3 +532,71 @@ hull (I a b) (I a' b') = I (min a a') (max b b')
 hull Empty x = x
 hull x Empty = x
 {-# INLINE hull #-}
+
+-- | Bisect an interval at its midpoint.
+--
+-- >>> bisect (10.0 ... 20.0)
+-- (10.0 ... 15.0,15.0 ... 20.0)
+--
+-- >>> bisect (singleton 5.0)
+-- (5.0 ... 5.0,5.0 ... 5.0)
+--
+-- >>> bisect Empty
+-- (Empty,Empty)
+bisect :: Precision p => Interval p -> (Interval p, Interval p)
+bisect Empty = (Empty,Empty)
+bisect (I a b) = (a...coerce m, succUlp m...b) where m = a + (coerce b - a) / 2
+{-# INLINE bisect #-}
+
+-- @'divNonZero' X Y@ assumes @0 `'notElem'` Y@
+divNonZero :: Precision p => Interval p -> Interval p -> Interval p
+divNonZero (I a b) (I a' b') =
+  minimum [a / a', a / coerce b', coerce b / a', coerce b / coerce b']
+  ...
+  maximum [coerce a / coerce a', coerce a / b', b / coerce a', b / b']
+divNonZero _ _ = Empty
+
+-- @'divPositive' X y@ assumes y > 0, and divides @X@ by [0 ... y]
+divPositive :: Precision p => Interval p -> Rounded TowardInf p -> Interval p
+divPositive Empty _ = Empty
+divPositive x@(I a b) y
+  | a == 0 && b == 0 = x
+  | b < 0 || isNegativeZero b = negInfinity ... (b / y)
+  | a < 0 = whole
+  | otherwise = (a / coerce y) ... posInfinity
+{-# INLINE divPositive #-}
+
+-- divNegative assumes y < 0 and divides the interval @X@ by [y ... 0]
+divNegative :: Precision p => Interval p -> Rounded TowardNegInf p -> Interval p
+divNegative Empty _ = Empty
+divNegative x@(I a b) y
+  | a == 0 && b == 0 = negate x -- flip negative zeros
+  | b < 0 || isNegativeZero b = (coerce b / y) ... posInfinity
+  | a < 0     = whole
+  | otherwise = negInfinity ... (coerce a / coerce y)
+{-# INLINE divNegative #-}
+
+divZero :: Precision p => Interval p -> Interval p
+divZero x@(I a b)
+  | a == 0 && b == 0 = x
+  | otherwise        = whole
+divZero Empty = Empty
+{-# INLINE divZero #-}
+
+instance Precision p => Fractional (Interval p) where
+  -- TODO: check isNegativeZero properly?
+  _ / Empty = Empty
+  x / y@(I a b)
+    | 0 `notElem` y = divNonZero x y
+    | iz && sz  = error "divide by zero"
+    | iz        = divPositive x b
+    |       sz  = divNegative x a
+    | otherwise = divZero x
+    where
+      iz = a == 0
+      sz = b == 0
+  recip Empty = Empty
+  recip (I a b) = min (recip $ coerce a) (recip $ coerce b) ... max (recip $ coerce a) (recip $ coerce b)
+  {-# INLINE recip #-}
+  fromRational = I <$> fromRational <*> fromRational
+  {-# INLINE fromRational #-}
