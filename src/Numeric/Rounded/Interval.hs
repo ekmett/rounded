@@ -629,11 +629,14 @@ instance Precision p => RealFrac (Interval p) where
 instance Precision p => Floating (Interval p) where
   pi = I pi pi
   {-# INLINE pi #-}
+
   exp = increasing exp
   {-# INLINE exp #-}
+
   log (I a b) = (if a > 0 then log a else negInfinity) ... log b
   log Empty = Empty
   {-# INLINE log #-}
+
   cos Empty = Empty
   cos x
     | width t >= pi = negate 1 ... 1
@@ -644,9 +647,11 @@ instance Precision p => Floating (Interval p) where
     where
       t = fmod x (pi * 2)
   {-# INLINE cos #-}
+
   sin Empty = Empty
   sin x = cos (x - pi / 2)
   {-# INLINE sin #-}
+
   tan Empty = Empty
   tan x
     | inf t' <= negate pi / 2 || sup t' >= pi / 2 = whole
@@ -656,6 +661,7 @@ instance Precision p => Floating (Interval p) where
       t' | t >= pi / 2 = t - pi
          | otherwise   = t
   {-# INLINE tan #-}
+
   asin Empty = Empty
   asin (I a b)
     | b < -1 || a > 1 = Empty
@@ -664,6 +670,7 @@ instance Precision p => Floating (Interval p) where
       ...
       (if b >= 1 then pi / 2 else asin b)
   {-# INLINE asin #-}
+
   acos Empty = Empty
   acos (I a b)
     | b < -1 || a > 1 = Empty
@@ -672,15 +679,39 @@ instance Precision p => Floating (Interval p) where
       ...
       (if a < -1 then pi else acos (coerce a))
   {-# INLINE acos #-}
+
   atan = increasing atan
   {-# INLINE atan #-}
+
   sinh = increasing sinh
   {-# INLINE sinh #-}
+
   cosh Empty = Empty
   cosh x@(I a b)
     | b < 0  = decreasing cosh x
     | a >= 0 = increasing cosh x
     | otherwise  = I 0 $ cosh $ if negate a > coerce b then coerce a else b
   {-# INLINE cosh #-}
+
   tanh = increasing tanh
   {-# INLINE tanh #-}
+
+  asinh = increasing asinh
+  {-# INLINE asinh #-}
+
+  acosh Empty = Empty
+  acosh (I a b)
+    | b < 1 = Empty
+    | otherwise = I lo $ acosh b
+    where lo | a <= 1    = 0
+             | otherwise = acosh a
+  {-# INLINE acosh #-}
+
+  atanh Empty = Empty
+  atanh (I a b)
+    | b < -1 || a > 1 = Empty
+    | otherwise =
+      (if a <= - 1 then negInfinity else atanh a)
+      ...
+      (if b >= 1 then posInfinity else atanh b)
+  {-# INLINE atanh #-}
