@@ -327,7 +327,8 @@ instance (Rounding r, Precision p) => Real (Rounded r p) where
   toRational = toRational'
 
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
-  properFraction = undefined -- TODO
+  properFraction r = (i, fromRational f) where
+    (i, f) = properFraction (toRational r)
 
 foreign import prim "mpfr_cmm_get_z_2exp" mpfrDecode#
   :: CSignPrec# -> CExp# -> ByteArray# -> (# CExp#, Int#, ByteArray# #)
