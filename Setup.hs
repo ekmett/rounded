@@ -87,6 +87,7 @@ mpfrHooks = autoconfUserHooks
     , postConf  = mpfrPostConf
     , confHook  = mpfrConfHook
     , preBuild  = mpfrPreBuild
+    , buildHook = mpfrBuildHook
     , postBuild = mpfrPostBuild
     , postClean = mpfrPostClean
     }
@@ -113,13 +114,24 @@ mpfrHooks = autoconfUserHooks
 
   mpfrPostConf args flags pkg_descr lbi = do
     postConf simpleUserHooks args flags pkg_descr lbi
-    configureMpfr =<< getDist
+    distDir <- getDist
+    configureMpfr distDir
 
+    
   mpfrPreBuild args flags = do
     preBuild simpleUserHooks args flags
-    (ar, _) <- requireProgram silent arProgram defaultProgramDb
     distDir <- getDist
     makeMpfr distDir
+    
+    let modified = emptyBuildInfo { extraLibs = ["mpfrPIC"], extraLibDirs = [distDir </> "libtmp"] }
+
+    return (Just modified, snd emptyHookedBuildInfo)
+
+  mpfrBuildHook pkg_descr lbi hooks flags = do
+    distDir <- getDist
+    (ar, _) <- requireProgram silent arProgram defaultProgramDb
+    let lbi' = lbi { withPrograms = updateProgram ar (withPrograms lbi) }
+
     putStrLn $ "Determining MPFR constants..."
     programExists <- doesFileExist $ distDir </> "mkMpfrDerivedConstants"
     unless programExists $ do
@@ -132,17 +144,16 @@ mpfrHooks = autoconfUserHooks
 
     createDirectory' $ distDir </> "libtmp"
     picObjects <- pathsWithSuffix ".o" $ mpfrRoot </> "src" </> ".libs"
-    createArLibArchive silent ar (distDir </> "libtmp" </> "libmpfrPIC.a") picObjects
+    createArLibArchive silent lbi' (distDir </> "libtmp" </> "libmpfrPIC.a") picObjects
     runOrBomb "ranlib" [distDir </> "libtmp" </> "libmpfrPIC.a"]
 
-    let modified = emptyBuildInfo { extraLibs = ["mpfrPIC"], extraLibDirs = [distDir </> "libtmp"] }
-
-    return (Just modified, snd emptyHookedBuildInfo)
+    buildHook simpleUserHooks pkg_descr lbi' hooks flags
 
   mpfrPostBuild args flags pkg_descr lbi = do
     distDir <- getDist
     (ar, _) <- requireProgram silent arProgram defaultProgramDb
-    (ranlib, _) <- requireProgram silent ranlibProgram defaultProgramDb
+--    (ranlib, _) <- requireProgram silent ranlibProgram defaultProgramDb
+    let lbi' = lbi { withPrograms = updateProgram ar (withPrograms lbi) }
 
     putStrLn "Mangling static library..."
     inDirectory (distDir </> "tmp") $ do
@@ -154,7 +165,7 @@ mpfrHooks = autoconfUserHooks
     --  runOrBomb "mv" [o, o <.> "tmp"]
     --  runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
 
-    createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1.a") objects
+    createArLibArchive silent lbi' (distDir </> "build" </> "libHSrounded-0.1.a") objects
     runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1.a"]
 
     profExists <- doesFileExist $ distDir </> "build" </> "libHSrounded-0.1_p.a"
@@ -169,7 +180,7 @@ mpfrHooks = autoconfUserHooks
       --  runOrBomb "mv" [o, o <.> "tmp"]
       --  runOrBomb "objcopy" ["--redefine-syms=rounded.rename", o <.> "tmp", o]
 
-      createArLibArchive silent ar (distDir </> "build" </> "libHSrounded-0.1_p.a") objects
+      createArLibArchive silent lbi' (distDir </> "build" </> "libHSrounded-0.1_p.a") objects
       runOrBomb "ranlib" [distDir </> "build" </> "libHSrounded-0.1_p.a"]
 
     postBuild simpleUserHooks args flags pkg_descr lbi
