@@ -11,7 +11,7 @@ copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles
 category:           Numeric, Math
 build-type:         Custom
 cabal-version:      >= 1.22
-tested-with:        GHC == 7.8.1
+tested-with:        GHC == 7.8.1, GHC == 7.8.4
 extra-source-files: cbits/mkMpfrDerivedConstants.c, cbits/alloc.c
 description:
     This package provides numeric instances for MPFR that use
