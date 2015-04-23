@@ -8,7 +8,7 @@ import Distribution.Simple.Program.Ar
 import Distribution.Simple.Program.Find
 import Distribution.Simple.LocalBuildInfo
 import Distribution.Simple.Setup
-import Distribution.PackageDescription
+import Distribution.PackageDescription hiding (Flag)
 import Distribution.Verbosity
 
 import System.IO
@@ -59,10 +59,15 @@ runOrBomb cmd args = do
       hPutStrLn stderr $ err
       exitWith $ ExitFailure e
 
-getDist = do
-  -- let Flag relDistDir = Flag defaultDistPref `mappend` configDistPref flags
-  -- canonicalizePath relDistDir
-  canonicalizePath "dist" -- ugly. There must be a safer way to get the absolute path of the dist dir
+getConfigDist :: ConfigFlags -> IO FilePath
+getConfigDist flags = do
+  let Flag relDistDir = Flag defaultDistPref `mappend` configDistPref flags
+  canonicalizePath relDistDir
+
+getBuildDist :: BuildFlags -> IO FilePath
+getBuildDist flags = do
+  let Flag relDistDir = Flag defaultDistPref `mappend` buildDistPref flags
+  canonicalizePath relDistDir
 
 createDirectory' dir = do
   exists <- doesDirectoryExist $ dir
@@ -93,7 +98,7 @@ mpfrHooks = autoconfUserHooks
     }
   where
   mpfrConfHook (pkg, pbi) flags = do
-    distDir <- getDist
+    distDir <- getConfigDist flags
     lbi <- confHook autoconfUserHooks (pkg, pbi) flags
     let lpd = localPkgDescr lbi
         lib = fromJust (library lpd)
@@ -106,7 +111,7 @@ mpfrHooks = autoconfUserHooks
   -- We need to create the "include" directory at some point, but we're doing it this early to make cabal
   -- shut up about it not being present.
   mpfrPreConf args flags = do
-    distDir <- getDist
+    distDir <- getConfigDist flags
     createDirectory' $ distDir </> "include"
     createDirectory' $ distDir </> "lib"
     createDirectory' $ distDir </> "tmp"
@@ -114,21 +119,24 @@ mpfrHooks = autoconfUserHooks
 
   mpfrPostConf args flags pkg_descr lbi = do
     postConf simpleUserHooks args flags pkg_descr lbi
-    distDir <- getDist
+    distDir <- getConfigDist flags
     configureMpfr distDir
 
     
   mpfrPreBuild args flags = do
     preBuild simpleUserHooks args flags
-    distDir <- getDist
+    distDir <- getBuildDist flags
     makeMpfr distDir
     
-    let modified = emptyBuildInfo { extraLibs = ["mpfrPIC"], extraLibDirs = [distDir </> "libtmp"] }
+    let modified = emptyBuildInfo { extraLibs = ["mpfrPIC"]
+                                  , extraLibDirs = [distDir </> "libtmp"]
+                                  , includeDirs = [distDir </> "include"]
+                                  }
 
     return (Just modified, snd emptyHookedBuildInfo)
 
   mpfrBuildHook pkg_descr lbi hooks flags = do
-    distDir <- getDist
+    distDir <- getBuildDist flags
     (ar, _) <- requireProgram silent arProgram defaultProgramDb
     let lbi' = lbi { withPrograms = updateProgram ar (withPrograms lbi) }
 
@@ -150,7 +158,7 @@ mpfrHooks = autoconfUserHooks
     buildHook simpleUserHooks pkg_descr lbi' hooks flags
 
   mpfrPostBuild args flags pkg_descr lbi = do
-    distDir <- getDist
+    distDir <- getBuildDist flags
     (ar, _) <- requireProgram silent arProgram defaultProgramDb
 --    (ranlib, _) <- requireProgram silent ranlibProgram defaultProgramDb
     let lbi' = lbi { withPrograms = updateProgram ar (withPrograms lbi) }
