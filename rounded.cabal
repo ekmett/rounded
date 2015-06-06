@@ -42,14 +42,14 @@ library
     Numeric.Rounded.Precision
 
   build-depends:
-    base             >= 4.7     && < 5,
+    base             >= 4.8   && < 5,
     ghc-prim,
-    integer-gmp      >= 0.2   && < 0.6,
+    integer-gmp      >= 1.0   && < 1.1,
     parallel,
-    reflection       >= 1.1.6 && < 1.5,
-    singletons       >= 0.9.3 && < 0.11,
-    tagged           >= 0.4.4 && < 0.8,
-    template-haskell >= 2.4   && < 2.10
+    reflection       >= 1.1.6 && < 1.6,
+    singletons       >= 0.9.3 && < 1.2,
+    tagged           >= 0.4.4 && < 0.9,
+    template-haskell >= 2.4   && < 2.11
 
   ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
   c-sources:       cbits/mpfr-wrappers.cmm
