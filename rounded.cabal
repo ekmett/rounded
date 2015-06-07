@@ -36,6 +36,7 @@ library
   exposed-modules:
     Numeric.Rounded
     Numeric.Rounded.Interval
+    Numeric.MPFR.Types
 
   other-modules:
     Numeric.Rounded.Rounding
@@ -50,10 +51,15 @@ library
     singletons       >= 0.9.3 && < 1.2,
     tagged           >= 0.4.4 && < 0.9,
     template-haskell >= 2.4   && < 2.11
+    hgmp
+  -- http://code.mathr.co.uk/hgmp
 
   ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
   c-sources:       cbits/mpfr-wrappers.cmm
   include-dirs:    dist/include
+  build-tools:     hsc2hs
+
+  extra-libraries: mpfr
 
   hs-source-dirs:  src
 
