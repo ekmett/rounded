@@ -49,7 +49,7 @@ library
     hgmp
   -- http://code.mathr.co.uk/hgmp
 
-  ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
+  ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
   build-tools:     hsc2hs
 
   extra-libraries: mpfr
