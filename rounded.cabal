@@ -57,3 +57,24 @@ library
   hs-source-dirs:  src
 
   default-language: Haskell2010
+  other-extensions:
+    DataKinds
+    DeriveDataTypeable
+    DeriveGeneric
+    EmptyDataDecls
+    FlexibleContexts
+    FlexibleInstances
+    ForeignFunctionInterface
+    GeneralizedNewtypeDeriving
+    KindSignatures
+    MagicHash
+    MultiParamTypeClasses
+    PolyKinds
+    Rank2Types
+    RankNTypes
+    RoleAnnotations
+    ScopedTypeVariables
+    TypeFamilies
+    TypeSynonymInstances
+    UnboxedTuples
+    UndecidableInstances
