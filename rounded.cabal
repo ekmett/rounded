@@ -7,11 +7,11 @@ license:            LGPL
 license-file:       LICENSE
 author:             Edward A. Kmett, Daniel G. Peebles
 maintainer:         Edward A. Kmett <ekmett@gmail.com>
-copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles
+copyright:          Copyright (C) 2012-2015 Edward A. Kmett, Daniel G. Peebles
 category:           Numeric, Math
-build-type:         Custom
+build-type:         Simple
 cabal-version:      >= 1.22
-tested-with:        GHC == 7.8.1, GHC == 7.8.4
+tested-with:        GHC == 7.10.1
 extra-source-files: cbits/mkMpfrDerivedConstants.c, cbits/alloc.c
 description:
     This package provides numeric instances for MPFR that use
@@ -20,8 +20,6 @@ description:
     to choose a 'Rounding' and 'Precision'. For those that do not want to
     use reflection, explicit instances are provided for common precisions
     and for the built-in rounding modes.
-    .
-    This package should link correctly on either MacOS X or Linux with GHC 7.8.1 or later.
     .
     >>> import Numeric.Rounded
     >>> :set -XDataKinds
@@ -42,17 +40,17 @@ library
     Numeric.Rounded.Precision
 
   build-depends:
-    base             >= 4.7     && < 5,
+    base             >= 4.8     && < 5,
     ghc-prim,
-    integer-gmp      >= 0.2   && < 0.6,
+    integer-gmp,
     parallel,
-    reflection       >= 1.1.6 && < 1.5,
-    singletons       >= 0.9.3 && < 0.11,
-    tagged           >= 0.4.4 && < 0.8,
-    template-haskell >= 2.4   && < 2.10
+    reflection       >= 2       && < 3,
+    singletons       >= 1.1.2.1 && < 1.2,
+    tagged           >= 0.8.1   && < 1,
+    template-haskell >= 2.10    && < 2.11
 
   ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
   c-sources:       cbits/mpfr-wrappers.cmm
-  include-dirs:    dist/include
-
+  extra-libraries: mpfr
+  extra-lib-dirs:  /usr/local/lib
   hs-source-dirs:  src

@@ -53,7 +53,6 @@ module Numeric.Rounded
 import Data.Proxy
 import Data.Bits
 import GHC.Integer.GMP.Internals
-import GHC.Integer.GMP.Prim
 import GHC.Prim
 import GHC.Types
 import GHC.Real
