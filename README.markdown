@@ -1,7 +1,7 @@
 rounded
 =======
 
-[![Hackage](https://img.shields.io/hackage/v/rounded.svg)](https://hackage.haskell.org/package/rounded) [![Build Status](https://secure.travis-ci.org/ekmett/rounded.png?branch=master)](http://travis-ci.org/ekmett/rounded
+[![Hackage](https://img.shields.io/hackage/v/rounded.svg)](https://hackage.haskell.org/package/rounded) [![Build Status](https://secure.travis-ci.org/ekmett/rounded.png?branch=master)](http://travis-ci.org/ekmett/rounded)
 
 This package provides properly rounded floating point numbers of arbitrary precision.
 
