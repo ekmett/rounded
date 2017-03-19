@@ -42,12 +42,11 @@ library
     Numeric.Rounded.Precision
 
   build-depends:
-    base             >= 4.8   && < 5,
+    base             >= 4.9 && < 5,
     ghc-prim,
-    reflection       >= 1.1.6 && < 1.6,
-    singletons       >= 0.9.3 && < 1.2,
-    hgmp
-  -- http://code.mathr.co.uk/hgmp
+    reflection       >= 2.1.2 && < 2.2,
+    singletons       >= 2.2 && < 2.3,
+    hgmp             >= 0.1.0.1 && < 0.2
 
   ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
   build-tools:     hsc2hs
