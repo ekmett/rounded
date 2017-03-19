@@ -80,6 +80,7 @@ module Numeric.Rounded
     , withOutRounded
     ) where
 
+import Control.Exception (bracket_)
 import Data.Bits (shiftL)
 import Data.Int (Int32)
 import Data.Proxy (Proxy(..))
@@ -517,18 +518,13 @@ withOutRounded_ f = r where
 --   the action then it is peeked and returned.  Otherwise you get 'Nothing'.
 withOutRounded :: Precision p => (Ptr MPFR -> IO a) -> IO (a, Maybe (Rounded r p))
 withOutRounded f = r where
-  r = alloca $ \ptr -> do
-    mpfr_init2 ptr prec
+  r = alloca $ \ptr -> bracket_ (mpfr_init2 ptr prec) (mpfr_clear ptr) $ do
     a <- f ptr
     MPFR{ mpfrPrec = prec', mpfrSign = s, mpfrExp = e, mpfrD = d } <- peek ptr
     if prec /= prec'
-      then do
-        mpfr_clear ptr
-        return (a, Nothing)
-      else do
-        asByteArray d (precBytes prec) $ \l -> do
-          mpfr_clear ptr
-          return (a, Just (Rounded prec s e l))
+      then return (a, Nothing)
+      else asByteArray d (precBytes prec) $ \l ->
+        return (a, Just (Rounded prec s e l))
   prec = fromIntegral (precision (t r))
   t :: IO (a, Maybe b) -> b
   t _ = undefined
