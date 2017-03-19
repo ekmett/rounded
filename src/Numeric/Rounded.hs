@@ -104,7 +104,7 @@ import GHC.Prim
 import GHC.Types (IO(..))
 import GHC.Exts (Ptr(..), Int(..))
 
-import Numeric.GMP.Utils (withInteger, withOutInteger, withRational)
+import Numeric.GMP.Utils (withInInteger, withOutInteger, withInRational)
 import Numeric.GMP.Types (MPZ, MPQ, MPLimb, MPExp(..))
 
 import Numeric.MPFR.Types
@@ -313,7 +313,7 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
   negate = negate'
   fromInteger j = r where  -- TODO restore small integer optimisation
     r = unsafePerformIO $ do
-          (_, Just x) <- withInteger j $ \jz -> withOutRounded_ $ \jfr -> mpfr_set_z jfr jz (rnd r)
+          (_, Just x) <- withInInteger j $ \jz -> withOutRounded_ $ \jfr -> mpfr_set_z jfr jz (rnd r)
           return x
   abs = abs'
   signum x = case compare (unsafePerformIO $ withRounded x mpfr_sgn) 0 of
@@ -326,7 +326,7 @@ foreign import ccall unsafe "mpfr_set_q" mpfr_set_q :: Ptr MPFR -> Ptr MPQ -> MP
 instance (Rounding r, Precision p) => Fractional (Rounded r p) where
   fromRational q = r where -- TODO small integer optimisation
     r = unsafePerformIO $ do
-          (_, Just x) <- withRational q $ \qq -> withOutRounded_ $ \qfr -> mpfr_set_q qfr qq (rnd r)
+          (_, Just x) <- withInRational q $ \qq -> withOutRounded_ $ \qfr -> mpfr_set_q qfr qq (rnd r)
           return x
   (/) = (!/!)
 
@@ -425,7 +425,7 @@ foreign import ccall unsafe "mpfr_set_z_2exp" mpfr_set_z_2exp :: Ptr MPFR -> Ptr
 
 
 decodeFloat' :: Rounded r p -> (Integer, Int)
-decodeFloat' x = swap . unsafePerformIO $ do
+decodeFloat' x = unsafePerformIO $ do
   withRounded x $ \xfr -> withOutInteger $ \xz -> do
     e <- mpfr_get_z_2exp xz xfr -- FIXME sets error flags, need to wrap...
     return (fromIntegral e)
@@ -433,7 +433,7 @@ decodeFloat' x = swap . unsafePerformIO $ do
 encodeFloat' :: (Rounding r, Precision p) => Integer -> Int -> Rounded r p
 encodeFloat' j e = r where
   r = unsafePerformIO $ do
-        (_, Just x) <- withInteger j $ \jz -> withOutRounded_ $ \xfr -> mpfr_set_z_2exp xfr jz (fromIntegral e) (rnd r)
+        (_, Just x) <- withInInteger j $ \jz -> withOutRounded_ $ \xfr -> mpfr_set_z_2exp xfr jz (fromIntegral e) (rnd r)
         return x
 
 instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
