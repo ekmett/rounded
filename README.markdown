@@ -17,7 +17,9 @@ Usage
 
 ```haskell
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 import Numeric.Rounded
+import Data.Proxy
 ```
 
 To use a 53 bit significand (the same size as used by a Double), and round down intermediate results:
