@@ -4,9 +4,7 @@ rounded
 [![Build Status](https://secure.travis-ci.org/ekmett/rounded.png?branch=master)](http://travis-ci.org/ekmett/rounded)
 
 This package provides properly rounded floating point numbers of arbitrary precision.
-
-It does so by wrapping the GNU MPFR library. However, it actually contains a patched copy of MPFR 3.1.0,
-which has been updated to be compatible with GHC's use of GMP's garbage collection hook.
+It does so by wrapping the GNU MPFR library.
 
 Phantom types carry the information about the precision and rounding mode, letting you treat properly rounded floating
 point numbers as instances of `Num` or `Floating`, like any other numeric type in Haskell.
