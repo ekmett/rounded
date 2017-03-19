@@ -72,11 +72,6 @@ instance Bounded RoundingMode where
 
 newtype instance Sing (m :: RoundingMode) = SRounding RoundingMode
 
-instance SingKind ('KProxy :: KProxy RoundingMode) where
-  type DemoteRep ('KProxy :: KProxy RoundingMode) = RoundingMode
-  fromSing (SRounding n) = n
-  toSing n = SomeSing (SRounding n)
-
 instance SingI TowardNearestWithTiesAwayFromZero where sing = SRounding TowardNearestWithTiesAwayFromZero
 instance SingI TowardNearest where sing = SRounding TowardNearest
 instance SingI TowardZero    where sing = SRounding TowardZero
