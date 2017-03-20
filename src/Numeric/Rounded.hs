@@ -343,14 +343,15 @@ foreign import prim "mpfr_cmm_init_d" mfpr_cmm_init_d
   :: CRounding# -> CPrecision# -> Double# -> (# CSignPrec#, CExp#, ByteArray# #)
 -}
 
+foreign import ccall unsafe "mpfr_set_d" mpfr_set_d :: Ptr MPFR -> Double -> MPFRRnd -> IO CInt
+
 -- | Construct a rounded floating point number directly from a 'Double'.
 fromDouble :: (Rounding r, Precision p) => Double -> Rounded r p
-fromDouble = uncurry encodeFloat . decodeFloat -- FIXME
-{-
- (D# d) = r where
-  r = case mfpr_cmm_init_d (mode# (proxyRounding r)) (prec# (proxyPrecision r)) d of
-    (# s, e, l #) -> Rounded s e l
--}
+fromDouble d = r
+  where
+    r = unsafePerformIO $ do
+      (_, Just x) <- withOutRounded_ $ \xfr -> mpfr_set_d xfr d (rnd r)
+      return x
 
 
 foreign import ccall unsafe "mpfr_nextabove" mpfr_nextabove :: Ptr MPFR -> IO ()
