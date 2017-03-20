@@ -127,12 +127,13 @@ data Rounded (r :: RoundingMode) p = Rounded
   , roundedLimbs :: !ByteArray#
   }
 
--- We could use this in a rewrite rule for fast conversions to Double...
 foreign import ccall unsafe "mpfr_get_d" mpfr_get_d :: Ptr MPFR -> MPFRRnd -> IO Double
 
 -- | Round to Double with the given rounding mode.
 toDouble :: (Rounding r, Precision p) => Rounded r p -> Double
 toDouble x = unsafePerformIO $ withInRounded x $ \xfr -> mpfr_get_d xfr (rnd x)
+-- this syntax is strange, but it seems to be the way it works...
+{-# RULES "realToFrac/toDouble" forall (x :: (Rounding r, Precision p) => Rounded r p) . realToFrac x = toDouble x #-}
 
 instance (Rounding r, Precision p) => Show (Rounded r p) where
   showsPrec _ = showFloat
@@ -345,6 +346,8 @@ fromInt i = r
     r = unsafePerformIO $ do
       (Just x, _) <- withOutRounded_ $ \xfr -> mpfr_set_sj xfr (fromIntegral i) (rnd r)
       return x
+-- TODO figure out correct syntax (if even possible) to allow RULE
+-- {-# RULES "fromIntegral/fromInt" fromIntegral = fromInt #-}
 
 foreign import ccall unsafe "mpfr_set_d" mpfr_set_d :: Ptr MPFR -> Double -> MPFRRnd -> IO CInt
 
@@ -355,6 +358,8 @@ fromDouble d = r
     r = unsafePerformIO $ do
       (Just x, _) <- withOutRounded_ $ \xfr -> mpfr_set_d xfr d (rnd r)
       return x
+-- TODO figure out correct syntax (if even possible) to allow RULE
+-- {-# RULES "realToFrac/fromDouble" realToFrac = fromDouble #-}
 
 
 foreign import ccall unsafe "mpfr_nextabove" mpfr_nextabove :: Ptr MPFR -> IO ()
