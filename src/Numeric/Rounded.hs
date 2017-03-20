@@ -23,6 +23,7 @@ module Numeric.Rounded
       Rounded(..)
     , fromInt
     , fromDouble
+    , toDouble
     -- * Precision
     , Precision(precision)
     , Bytes
@@ -127,7 +128,11 @@ data Rounded (r :: RoundingMode) p = Rounded
   }
 
 -- We could use this in a rewrite rule for fast conversions to Double...
--- foreign import prim "mpfr_cmm_get_d"       mpfr_cmm_get_d :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double#
+foreign import ccall unsafe "mpfr_get_d" mpfr_get_d :: Ptr MPFR -> MPFRRnd -> IO Double
+
+-- | Round to Double with the given rounding mode.
+toDouble :: (Rounding r, Precision p) => Rounded r p -> Double
+toDouble x = unsafePerformIO $ withInRounded x $ \xfr -> mpfr_get_d xfr (rnd x)
 
 instance (Rounding r, Precision p) => Show (Rounded r p) where
   showsPrec _ = showFloat
