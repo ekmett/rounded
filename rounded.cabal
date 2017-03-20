@@ -12,7 +12,7 @@ copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles
 category:           Numeric, Math
 build-type:         Simple
 cabal-version:      >= 1.22
-tested-with:        GHC == 8.0.2
+tested-with:        GHC == 7.10.3, GHC == 8.0.2
 description:
     This package provides numeric instances for MPFR that use
     \"Implicit Configurations\" from
@@ -21,7 +21,7 @@ description:
     use reflection, explicit instances are provided for common precisions
     and for the built-in rounding modes.
     .
-    This package should link correctly on either MacOS X or Linux with GHC 7.10.1 or later.
+    This package should work correctly with GHC 7.10.1 or later.
     .
     >>> import Numeric.Rounded
     >>> :set -XDataKinds
@@ -43,10 +43,10 @@ library
     Numeric.Rounded.Precision
 
   build-depends:
-    base             >= 4.9 && < 5,
+    base             >= 4.8     && < 5,
     ghc-prim,
-    reflection       >= 2.1.2 && < 2.2,
-    singletons       >= 2.2 && < 2.3,
+    reflection       >= 2.1.2   && < 2.2,
+    singletons       >= 2.1     && < 2.3,
     hgmp             >= 0.1.0.1 && < 0.2
 
   ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
