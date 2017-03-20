@@ -28,7 +28,7 @@ data MPFR = MPFR
 
 instance Storable MPFR where
   sizeOf _ = (#size __mpfr_struct)
-  alignment _ = alignment nullPtr -- TODO verify
+  alignment _ = (#alignment __mpfr_struct)
   peek ptr = do
     prec <- (#peek __mpfr_struct, _mpfr_prec) ptr
     sign <- (#peek __mpfr_struct, _mpfr_sign) ptr
