@@ -76,7 +76,8 @@ module Numeric.Rounded
     , atanh_
     , acosh_
     -- * Foreign Function Interface
-    , withRounded
+    , withInRounded
+    , withInOutRounded
     , withOutRounded
     ) where
 
@@ -157,21 +158,21 @@ unary
   :: (Rounding r, Precision p1, Precision p2)
   => Unary -> Rounded r p1 -> Rounded r p2
 unary f a = unsafePerformIO $ do
-  (_, Just c) <- withRounded a $ \afr ->
+  (Just c, _) <- withInRounded a $ \afr ->
     withOutRounded_ $ \cfr ->
       f cfr afr (rnd a)
   return c
 
 unary' :: Rounding r => Unary -> Rounded r p -> Rounded r p
 unary' f a = unsafePerformIO $ do
-  (_, Just c) <- withRounded a $ \afr ->
+  (Just c, _) <- withInRounded a $ \afr ->
     withOutRounded_' (roundedPrec a) $ \cfr ->
       f cfr afr (rnd a)
   return c
 
 unary'' :: Unary -> Rounded r p -> Rounded r p
 unary'' f a = unsafePerformIO $ do
-  (_, Just c) <- withRounded a $ \afr ->
+  (Just c, _) <- withInRounded a $ \afr ->
     withOutRounded_' (roundedPrec a) $ \cfr ->
       f cfr afr (fromIntegral (fromEnum TowardNearest))
   return c
@@ -228,8 +229,8 @@ binary
   :: (Rounding r, Precision p1, Precision p2, Precision p3)
   => Binary -> Rounded r p1 -> Rounded r p2 -> Rounded r p3
 binary f a b = unsafePerformIO $ do
-  (_, Just c) <- withRounded a $ \afr ->
-    withRounded b $ \bfr ->
+  (Just c, _) <- withInRounded a $ \afr ->
+    withInRounded b $ \bfr ->
       withOutRounded_ $ \cfr ->
         f cfr afr bfr (rnd a)
   return c
@@ -250,8 +251,8 @@ infixl 7 !*!, !/!
 
 binary' :: Rounding r => Binary -> Rounded r p -> Rounded r p -> Rounded r p
 binary' f a b = unsafePerformIO $ do
-  (_, Just c) <- withRounded a $ \afr ->
-    withRounded b $ \bfr ->
+  (Just c, _) <- withInRounded a $ \afr ->
+    withInRounded b $ \bfr ->
       withOutRounded_' (roundedPrec a) $ \cfr ->
         f cfr afr bfr (rnd a)
   return c
@@ -268,8 +269,8 @@ foreign import ccall unsafe "mpfr_greaterequal_p" mpfr_greaterequal_p :: Compari
 
 cmp' :: Comparison -> Rounded r p1 -> Rounded r p2 -> CInt
 cmp' f a b = unsafePerformIO $
-  withRounded a $ \afr ->
-  withRounded b $ \bfr -> do
+  withInRounded a $ \afr ->
+  withInRounded b $ \bfr -> do
   f afr bfr
 
 cmp :: Comparison -> Rounded r p1 -> Rounded r p2 -> Bool
@@ -313,10 +314,10 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
   negate = negate'
   fromInteger j = r where  -- TODO restore small integer optimisation
     r = unsafePerformIO $ do
-          (_, Just x) <- withInInteger j $ \jz -> withOutRounded_ $ \jfr -> mpfr_set_z jfr jz (rnd r)
+          (Just x, _) <- withInInteger j $ \jz -> withOutRounded_ $ \jfr -> mpfr_set_z jfr jz (rnd r)
           return x
   abs = abs'
-  signum x = case compare (unsafePerformIO $ withRounded x mpfr_sgn) 0 of
+  signum x = case compare (unsafePerformIO $ withInRounded x mpfr_sgn) 0 of
     LT -> -1
     EQ -> 0
     GT -> 1
@@ -326,7 +327,7 @@ foreign import ccall unsafe "mpfr_set_q" mpfr_set_q :: Ptr MPFR -> Ptr MPQ -> MP
 instance (Rounding r, Precision p) => Fractional (Rounded r p) where
   fromRational q = r where -- TODO small integer optimisation
     r = unsafePerformIO $ do
-          (_, Just x) <- withInRational q $ \qq -> withOutRounded_ $ \qfr -> mpfr_set_q qfr qq (rnd r)
+          (Just x, _) <- withInRational q $ \qq -> withOutRounded_ $ \qfr -> mpfr_set_q qfr qq (rnd r)
           return x
   (/) = (!/!)
 
@@ -337,7 +338,7 @@ fromInt :: (Rounding r, Precision p) => Int -> Rounded r p
 fromInt i = r
   where
     r = unsafePerformIO $ do
-      (_, Just x) <- withOutRounded_ $ \xfr -> mpfr_set_sj xfr (fromIntegral i) (rnd r)
+      (Just x, _) <- withOutRounded_ $ \xfr -> mpfr_set_sj xfr (fromIntegral i) (rnd r)
       return x
 
 foreign import ccall unsafe "mpfr_set_d" mpfr_set_d :: Ptr MPFR -> Double -> MPFRRnd -> IO CInt
@@ -347,7 +348,7 @@ fromDouble :: (Rounding r, Precision p) => Double -> Rounded r p
 fromDouble d = r
   where
     r = unsafePerformIO $ do
-      (_, Just x) <- withOutRounded_ $ \xfr -> mpfr_set_d xfr d (rnd r)
+      (Just x, _) <- withOutRounded_ $ \xfr -> mpfr_set_d xfr d (rnd r)
       return x
 
 
@@ -356,7 +357,7 @@ foreign import ccall unsafe "mpfr_nextbelow" mpfr_nextbelow :: Ptr MPFR -> IO ()
 
 inplace :: (Ptr MPFR -> IO ()) -> Rounded r p -> Rounded r p
 inplace f y = unsafePerformIO $ do
-  (_, Just x) <- withOutRounded_' (roundedPrec y) $ \xfr -> withRounded y $ \yfr -> do
+  (Just x, _) <- withOutRounded_' (roundedPrec y) $ \xfr -> withInRounded y $ \yfr -> do
     _ <- mpfr_set xfr yfr (fromIntegral (fromEnum TowardNearest))
     f xfr
   return x
@@ -370,7 +371,7 @@ type Constant = Ptr MPFR -> MPFRRnd -> IO CInt
 constant :: (Rounding r, Precision p) => Constant -> Rounded r p
 constant k = r where
   r = unsafePerformIO $ do
-    (_, Just x) <- withOutRounded_ $ \xfr -> k xfr (rnd r)
+    (Just x, _) <- withOutRounded_ $ \xfr -> k xfr (rnd r)
     return x
 
 
@@ -409,7 +410,7 @@ instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
 type Test = Ptr MPFR -> IO CInt
 
 tst :: (Precision p) => Test -> Rounded r p -> Bool
-tst f x = unsafePerformIO $ withRounded x $ \xfr -> do
+tst f x = unsafePerformIO $ withInRounded x $ \xfr -> do
   t <- f xfr
   return (t /= 0)
 
@@ -424,14 +425,14 @@ foreign import ccall unsafe "mpfr_set_z_2exp" mpfr_set_z_2exp :: Ptr MPFR -> Ptr
 
 decodeFloat' :: Rounded r p -> (Integer, Int)
 decodeFloat' x = unsafePerformIO $ do
-  withRounded x $ \xfr -> withOutInteger $ \xz -> do
+  withInRounded x $ \xfr -> withOutInteger $ \xz -> do
     e <- mpfr_get_z_2exp xz xfr -- FIXME sets error flags, need to wrap...
     return (fromIntegral e)
 
 encodeFloat' :: (Rounding r, Precision p) => Integer -> Int -> Rounded r p
 encodeFloat' j e = r where
   r = unsafePerformIO $ do
-        (_, Just x) <- withInInteger j $ \jz -> withOutRounded_ $ \xfr -> mpfr_set_z_2exp xfr jz (fromIntegral e) (rnd r)
+        (Just x, _) <- withInInteger j $ \jz -> withOutRounded_ $ \xfr -> mpfr_set_z_2exp xfr jz (fromIntegral e) (rnd r)
         return x
 
 instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
@@ -475,8 +476,8 @@ kCatalan :: (Rounding r, Precision p) => Rounded r p
 kCatalan = constant mpfr_const_catalan
 
 
-withRounded' :: Rounded r p -> (MPFR -> IO a) -> IO a
-withRounded' (Rounded p s e l) f = withByteArray l $ \ptr _bytes -> f MPFR
+withInRounded' :: Rounded r p -> (MPFR -> IO a) -> IO a
+withInRounded' (Rounded p s e l) f = withByteArray l $ \ptr _bytes -> f MPFR
   { mpfrPrec = p
   , mpfrSign = s
   , mpfrExp = e
@@ -485,8 +486,8 @@ withRounded' (Rounded p s e l) f = withByteArray l $ \ptr _bytes -> f MPFR
 
 -- | Use a Rounded as a /constant/ @mpfr_t@ (attempts to modify it may explode,
 --   changing the precision will explode).
-withRounded :: Rounded r p -> (Ptr MPFR -> IO a) -> IO a
-withRounded x f = withRounded' x $ \y -> with y f
+withInRounded :: Rounded r p -> (Ptr MPFR -> IO a) -> IO a
+withInRounded x f = withInRounded' x $ \y -> with y f
 
 
 foreign import ccall unsafe "mpfr_init2"
@@ -496,37 +497,46 @@ foreign import ccall unsafe "mpfr_clear"
   mpfr_clear :: Ptr MPFR -> IO ()
 
 -- | f mustn't change the precision or mpfr will explode by reallocating limbs
---   it didn't allocate...
-withOutRounded_' :: MPFRPrec -> (Ptr MPFR -> IO a) -> IO (a, Maybe (Rounded r p))
+--   it didn't allocate itself...
+withOutRounded_' :: MPFRPrec -> (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
 withOutRounded_' p f = allocaBytes (precBytes p) $ \d -> with
   MPFR{ mpfrPrec = p, mpfrSign = 0, mpfrExp = 0, mpfrD = d } $ \ptr -> do
   a <- f ptr
   MPFR{ mpfrPrec = p', mpfrSign = s', mpfrExp = e', mpfrD = d' } <- peek ptr
-  if p /= p' then return (a, Nothing) else
-    asByteArray d' (precBytes p') $ \l' -> return (a, Just (Rounded p' s' e' l'))
+  if p /= p' then return (Nothing, a) else
+    asByteArray d' (precBytes p') $ \l' -> return (Just (Rounded p' s' e' l'), a)
 
-withOutRounded_ :: Precision p => (Ptr MPFR -> IO a) -> IO (a, Maybe (Rounded r p))
+withOutRounded_ :: Precision p => (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
 withOutRounded_ f = r where
   r = withOutRounded_' prec f
   prec = fromIntegral (precision (t r))
-  t :: IO (a, Maybe t) -> t
+  t :: IO (Maybe t, a) -> t
   t _ = undefined
 
 -- | Allocates and initializes a new @mpfr_t@, if the precision matches after
 --   the action then it is peeked and returned.  Otherwise you get 'Nothing'.
-withOutRounded :: Precision p => (Ptr MPFR -> IO a) -> IO (a, Maybe (Rounded r p))
+withOutRounded :: Precision p => (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
 withOutRounded f = r where
   r = alloca $ \ptr -> bracket_ (mpfr_init2 ptr prec) (mpfr_clear ptr) $ do
     a <- f ptr
     MPFR{ mpfrPrec = prec', mpfrSign = s, mpfrExp = e, mpfrD = d } <- peek ptr
     if prec /= prec'
-      then return (a, Nothing)
+      then return (Nothing, a)
       else asByteArray d (precBytes prec) $ \l ->
-        return (a, Just (Rounded prec s e l))
+        return (Just (Rounded prec s e l), a)
   prec = fromIntegral (precision (t r))
-  t :: IO (a, Maybe b) -> b
+  t :: IO (Maybe b, a) -> b
   t _ = undefined
 
+-- | Allocates and initializes a new @mpfr_t@ to the value.  If the precision matches after
+--   the action then it is peeked and returned.  Otherwise you get 'Nothing'.
+withInOutRounded :: Precision p => Rounded r p -> (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
+-- FIXME: optimize to reduce copying
+withInOutRounded i f =
+  withOutRounded $ \ofr ->
+    withInRounded i $ \ifr -> do
+      mpfr_set ofr ifr (fromIntegral (fromEnum TowardNearest)) 
+      f ofr
 
 -- "The number of limbs in use is controlled by _mpfr_prec, namely ceil(_mpfr_prec/mp_bits_per_limb)."
 -- <http://www.mpfr.org/mpfr-current/mpfr.html#Internals>
