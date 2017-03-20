@@ -89,7 +89,7 @@ import Data.Tuple (swap)
 import Numeric (showFloat)
 
 import Foreign (with, alloca, allocaBytes, peek, sizeOf)
-import Foreign.C (CInt(..))
+import Foreign.C (CInt(..), CIntMax(..))
 
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -330,18 +330,15 @@ instance (Rounding r, Precision p) => Fractional (Rounded r p) where
           return x
   (/) = (!/!)
 
+foreign import ccall unsafe "__gmpfr_set_sj" mpfr_set_sj :: Ptr MPFR -> CIntMax -> MPFRRnd -> IO CInt
+
 -- | Construct a properly rounded floating point number from an 'Int'.
-
 fromInt :: (Rounding r, Precision p) => Int -> Rounded r p
-fromInt = fromIntegral -- FIXME
-{-
-(I# i) = r where
-  r = case mpfrFromInt# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) i of
-    (# s, e, l #) -> Rounded s e l
-
-foreign import prim "mpfr_cmm_init_d" mfpr_cmm_init_d
-  :: CRounding# -> CPrecision# -> Double# -> (# CSignPrec#, CExp#, ByteArray# #)
--}
+fromInt i = r
+  where
+    r = unsafePerformIO $ do
+      (_, Just x) <- withOutRounded_ $ \xfr -> mpfr_set_sj xfr (fromIntegral i) (rnd r)
+      return x
 
 foreign import ccall unsafe "mpfr_set_d" mpfr_set_d :: Ptr MPFR -> Double -> MPFRRnd -> IO CInt
 
