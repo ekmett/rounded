@@ -565,7 +565,7 @@ withInRounded' (Rounded p s e l) f = withByteArray l $ \ptr _bytes -> f MPFR
   , mpfrD = ptr
   }
 
--- | Use a Rounded as a /constant/ @mpfr_t@ (attempts to modify it may explode,
+-- | Use a value as a /constant/ @mpfr_t@ (attempts to modify it may explode,
 --   changing the precision will explode).
 withInRounded :: Rounded r p -> (Ptr MPFR -> IO a) -> IO a
 withInRounded x f = withInRounded' x $ \y -> with y f
@@ -619,7 +619,7 @@ withInOutRounded i f =
       _ <- mpfr_set ofr ifr (fromIntegral (fromEnum TowardNearest))
       f ofr
 
--- | Peek an @mpfr_t@ with reified precision.
+-- | Peek an @mpfr_t@ at its actual precision, reified.
 peekRounded :: Rounding r => Ptr MPFR -> (forall (p :: *) . Precision p => Rounded r p -> IO a) -> IO a
 peekRounded ptr f = do
   MPFR{ mpfrPrec = p', mpfrSign = s', mpfrExp = e', mpfrD = d' } <- peek ptr
