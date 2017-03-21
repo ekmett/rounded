@@ -114,6 +114,7 @@ import GHC.Exts (Ptr(..), Int(..))
 #if MIN_VERSION_base(4,9,0)
 import Numeric (Floating(..))
 #endif
+import Numeric (readSigned, readFloat)
 
 import Numeric.GMP.Utils (withInInteger, withOutInteger, withOutInteger_, withInRational)
 import Numeric.GMP.Types (MPZ, MPQ, MPLimb, MPExp(..))
@@ -197,6 +198,9 @@ instance (Rounding r, Precision p) => Show (Rounded r p) where
   showsPrec p x = showParen (p >= 7 && take 1 s == "-") (s ++) -- FIXME: precedence issues?
     where s = toString x
 
+instance (Rounding r, Precision p) => Read (Rounded r p) where
+  -- apparently this handles parens without any extra fuss
+  readsPrec _ = readSigned readFloat -- FIXME: precedence issues?
 
 type Unary = Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
 
