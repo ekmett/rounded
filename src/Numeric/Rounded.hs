@@ -92,8 +92,8 @@ module Numeric.Rounded
     , peekRounded
     ) where
 
-import Control.Exception (bracket, bracket_)
-import Data.Bits (shiftL)
+import Control.Exception (bracket, bracket_, throwIO, ArithException(Overflow))
+import Data.Bits (shiftL, testBit)
 import Data.Int (Int32)
 import Data.Proxy (Proxy(..))
 import Data.Ratio ((%))
@@ -121,7 +121,7 @@ import Numeric (Floating(..))
 import Numeric (readSigned, readFloat)
 
 import Numeric.GMP.Utils (withInInteger, withOutInteger, withOutInteger_, withInRational)
-import Numeric.GMP.Types (MPZ, MPQ, MPLimb, MPExp(..))
+import Numeric.GMP.Types (MPZ, MPQ, MPLimb)
 
 import Numeric.MPFR.Types
 
@@ -506,13 +506,18 @@ modf x = unsafePerformIO $ do
         mpfr_modf yfr zfr xfr (rnd x)
   return (y, z)
 
-foreign import ccall unsafe "mpfr_get_z" mpfr_get_z :: Ptr MPZ -> Ptr MPFR -> MPFRRnd -> IO CInt -- FIXME: sets erange flag, needs wrapping
+foreign import ccall unsafe "wrapped_mpfr_get_z" wrapped_mpfr_get_z :: Ptr MPZ -> Ptr MPFR -> MPFRRnd -> Ptr CInt -> IO CInt
 
 toInteger' :: (Rounding r, Precision p) => Rounded r p -> Integer
 toInteger' x = unsafePerformIO $
   withOutInteger_ $ \yz ->
     in_ x $ \xfr ->
-      mpfr_get_z yz xfr (rnd x)
+      with 0 $ \flagsptr -> do
+        e <- wrapped_mpfr_get_z yz xfr (rnd x) flagsptr
+        flags <- peek flagsptr
+        case testBit flags erangeBit of
+          False -> return e
+          True -> throwIO Overflow
 
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
   properFraction r = (fromInteger (toInteger' i), f) where
@@ -537,15 +542,20 @@ foreign import ccall unsafe "mpfr_inf_p" mpfr_inf_p :: Test
 foreign import ccall unsafe "mpfr_zero_p" mpfr_zero_p :: Test
 foreign import ccall unsafe "mpfr_signbit" mpfr_signbit :: Test
 
-foreign import ccall unsafe "mpfr_get_z_2exp" mpfr_get_z_2exp :: Ptr MPZ -> Ptr MPFR -> IO MPExp -- FIXME: sets error flags, need to wrap...
+foreign import ccall unsafe "wrapped_mpfr_get_z_2exp" wrapped_mpfr_get_z_2exp :: Ptr MPZ -> Ptr MPFR -> Ptr CInt -> IO MPFRExp
 foreign import ccall unsafe "mpfr_set_z_2exp" mpfr_set_z_2exp :: Ptr MPFR -> Ptr MPZ -> MPFRExp -> MPFRRnd -> IO CInt
 
 
 decodeFloat' :: Rounded r p -> (Integer, Int)
-decodeFloat' x = unsafePerformIO $ do
-  in_ x $ \xfr -> withOutInteger $ \xz -> do
-    e <- mpfr_get_z_2exp xz xfr
-    return (fromIntegral e)
+decodeFloat' x = case (unsafePerformIO $ do
+  in_ x $ \xfr -> withOutInteger $ \xz -> with 0 $ \flagsptr -> do
+    e <- wrapped_mpfr_get_z_2exp xz xfr flagsptr
+    flags <- peek flagsptr
+    case testBit flags erangeBit of
+      False -> return (fromIntegral e)
+      True -> throwIO Overflow) of
+  (0, _) -> (0, 0) -- mpfr_get_z_2exp returns emin instead of 0 for exponent
+  me -> me
 
 encodeFloat' :: (Rounding r, Precision p) => Integer -> Int -> Rounded r p
 encodeFloat' j e = r where
@@ -704,6 +714,8 @@ bitsPerLimb1 :: Int
 bitsPerLimb1 = bitsPerLimb - 1
 
 
+erangeBit :: Int
+erangeBit = 5 -- sync with cbits/wrappers.c
 
 rnd :: Rounding r => Rounded r p -> MPFRRnd
 rnd = fromIntegral . fromEnum . rounding . proxyRounding
