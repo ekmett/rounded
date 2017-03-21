@@ -528,14 +528,14 @@ foreign import ccall unsafe "mpfr_inf_p" mpfr_inf_p :: Test
 foreign import ccall unsafe "mpfr_zero_p" mpfr_zero_p :: Test
 foreign import ccall unsafe "mpfr_signbit" mpfr_signbit :: Test
 
-foreign import ccall unsafe "mpfr_get_z_2exp" mpfr_get_z_2exp :: Ptr MPZ -> Ptr MPFR -> IO MPExp
+foreign import ccall unsafe "mpfr_get_z_2exp" mpfr_get_z_2exp :: Ptr MPZ -> Ptr MPFR -> IO MPExp -- FIXME: sets error flags, need to wrap...
 foreign import ccall unsafe "mpfr_set_z_2exp" mpfr_set_z_2exp :: Ptr MPFR -> Ptr MPZ -> MPFRExp -> MPFRRnd -> IO CInt
 
 
 decodeFloat' :: Rounded r p -> (Integer, Int)
 decodeFloat' x = unsafePerformIO $ do
   withInRounded x $ \xfr -> withOutInteger $ \xz -> do
-    e <- mpfr_get_z_2exp xz xfr -- FIXME sets error flags, need to wrap...
+    e <- mpfr_get_z_2exp xz xfr
     return (fromIntegral e)
 
 encodeFloat' :: (Rounding r, Precision p) => Integer -> Int -> Rounded r p
