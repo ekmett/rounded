@@ -25,6 +25,7 @@ module Numeric.Rounded
     , fromInt
     , fromDouble
     , toDouble
+    , precRound
     -- * Precision
     , Precision(precision)
     , Bytes
@@ -136,6 +137,15 @@ toDouble :: (Rounding r, Precision p) => Rounded r p -> Double
 toDouble x = unsafePerformIO $ withInRounded x $ \xfr -> mpfr_get_d xfr (rnd x)
 -- this syntax is strange, but it seems to be the way it works...
 {-# RULES "realToFrac/toDouble" forall (x :: (Rounding r, Precision p) => Rounded r p) . realToFrac x = toDouble x #-}
+
+-- | Round to a different precision with the given rounding mode.
+precRound :: (Rounding r, Precision p1, Precision p2) => Rounded r p1 -> Rounded r p2
+precRound x = unsafePerformIO $ do
+  (Just y, _) <- withInRounded x $ \xfr -> withOutRounded $ \yfr ->
+    mpfr_set yfr xfr (rnd x)
+  return y
+-- TODO figure out correct syntax (if even possible) to allow RULE
+-- {-# RULES "realToFrac/precRound" realToFrac = precRound #-}
 
 foreign import ccall unsafe "mpfr_get_str" mpfr_get_str :: Ptr CChar -> Ptr MPFRExp -> Int -> CSize -> Ptr MPFR -> MPFRRnd -> IO (Ptr CChar)
 foreign import ccall unsafe "mpfr_free_str" mpfr_free_str :: Ptr CChar -> IO ()
