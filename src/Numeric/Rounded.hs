@@ -503,6 +503,13 @@ toInteger' x = unsafePerformIO $
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
   properFraction r = (fromInteger (toInteger' i), f) where
     (i, f) = modf r
+  -- this round is from base-4.9.1.0, modified to use compare instead of signum
+  round x = let (n,r) = properFraction x
+                m     = if tst mpfr_signbit r then n - 1 else n + 1
+            in  case compare_ (abs r) (0.5 :: Rounded r 8) of
+                  LT -> n
+                  EQ -> if even n then n else m
+                  GT -> m
 
 type Test = Ptr MPFR -> IO CInt
 
