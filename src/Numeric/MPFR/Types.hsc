@@ -3,6 +3,15 @@
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Numeric.MPFR.Types
+-- Copyright   :  (C) 2015-2017 Claude Heiland-Allen
+-- License     :  LGPL
+-- Stability   :  experimental
+-- Portability :  non-portable
+--
+----------------------------------------------------------------------------
 
 -- | MPFR types.
 module Numeric.MPFR.Types where
