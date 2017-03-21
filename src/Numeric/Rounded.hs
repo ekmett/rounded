@@ -115,7 +115,7 @@ import GHC.Exts (Ptr(..), Int(..))
 import Numeric (Floating(..))
 #endif
 
-import Numeric.GMP.Utils (withInInteger, withOutInteger, withInRational)
+import Numeric.GMP.Utils (withInInteger, withOutInteger, withOutInteger_, withInRational)
 import Numeric.GMP.Types (MPZ, MPQ, MPLimb, MPExp(..))
 
 import Numeric.MPFR.Types
@@ -482,11 +482,27 @@ toRational' r
 instance (Rounding r, Precision p) => Real (Rounded r p) where
   toRational = toRational'
 
-instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
-  -- FIXME: properFraction goes via Rational, needs optimization
-  properFraction r = (i, fromRational f) where
-    (i, f) = properFraction (toRational r)
+foreign import ccall unsafe "mpfr_modf" mpfr_modf :: Ptr MPFR -> Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
 
+modf :: (Rounding r, Precision p) => Rounded r p -> (Rounded r p, Rounded r p)
+modf x = unsafePerformIO $ do
+  (Just y, (Just z, _)) <- withInRounded x $ \xfr ->
+    withOutRounded $ \yfr ->
+      withOutRounded $ \zfr ->
+        mpfr_modf yfr zfr xfr (rnd x)
+  return (y, z)
+
+foreign import ccall unsafe "mpfr_get_z" mpfr_get_z :: Ptr MPZ -> Ptr MPFR -> MPFRRnd -> IO CInt -- FIXME: sets erange flag, needs wrapping
+
+toInteger' :: (Rounding r, Precision p) => Rounded r p -> Integer
+toInteger' x = unsafePerformIO $
+  withOutInteger_ $ \yz ->
+    withInRounded x $ \xfr ->
+      mpfr_get_z yz xfr (rnd x)
+
+instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
+  properFraction r = (fromInteger (toInteger' i), f) where
+    (i, f) = modf r
 
 type Test = Ptr MPFR -> IO CInt
 
