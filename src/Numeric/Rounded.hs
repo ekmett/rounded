@@ -616,7 +616,7 @@ withInOutRounded :: Precision p => Rounded r p -> (Ptr MPFR -> IO a) -> IO (Mayb
 withInOutRounded i f =
   withOutRounded $ \ofr ->
     withInRounded i $ \ifr -> do
-      mpfr_set ofr ifr (fromIntegral (fromEnum TowardNearest)) 
+      _ <- mpfr_set ofr ifr (fromIntegral (fromEnum TowardNearest))
       f ofr
 
 -- | Peek an @mpfr_t@ with reified precision.
