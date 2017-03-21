@@ -151,6 +151,7 @@ foreign import ccall unsafe "mpfr_get_str" mpfr_get_str :: Ptr CChar -> Ptr MPFR
 foreign import ccall unsafe "mpfr_free_str" mpfr_free_str :: Ptr CChar -> IO ()
 
 toString :: (Rounding r, Precision p) => Rounded r p -> String
+-- FIXME: what do about unsightly 0.1 -> 0.1000...0002 or 9.999...9995e-2 issues
 toString x = unsafePerformIO $ do
   (s, e) <- withInRounded x $ \xfr -> with 0 $ \eptr -> do
     s <- bracket (mpfr_get_str nullPtr eptr 10 0 xfr (fromIntegral (fromEnum TowardNearest))) mpfr_free_str peekCString
