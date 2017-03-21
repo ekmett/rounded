@@ -384,10 +384,15 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
   (-) = (.-.)
   (*) = (.*.)
   negate = negate'
-  fromInteger j = r where  -- TODO restore small integer optimisation
+  fromInteger j = r where
     r = unsafePerformIO $ do
-          (Just x, _) <- withInInteger j $ \jz -> withOutRounded_ $ \jfr -> mpfr_set_z jfr jz (rnd r)
-          return x
+          if toInteger (minBound :: CIntMax) <= j && j <= toInteger (maxBound :: CIntMax)
+          then do
+            (Just x, _) <- withOutRounded_ $ \jfr -> mpfr_set_sj jfr (fromInteger j :: CIntMax) (rnd r)
+            return x
+          else do
+            (Just x, _) <- withInInteger j $ \jz -> withOutRounded_ $ \jfr -> mpfr_set_z jfr jz (rnd r)
+            return x
   abs = abs'
   signum x = case sgn x of
     LT -> -1
