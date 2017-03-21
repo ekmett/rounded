@@ -82,7 +82,7 @@ module Numeric.Rounded
     , withOutRounded
     ) where
 
-import Control.Exception (bracket_)
+import Control.Exception (bracket, bracket_)
 import Data.Bits (shiftL)
 import Data.Int (Int32)
 import Data.Proxy (Proxy(..))
@@ -90,8 +90,9 @@ import Data.Ratio ((%))
 import Data.Tuple (swap)
 import Numeric (showFloat)
 
-import Foreign (with, alloca, allocaBytes, peek, sizeOf)
-import Foreign.C (CInt(..), CIntMax(..))
+import Foreign (with, alloca, allocaBytes, peek, sizeOf, nullPtr)
+import Foreign.C (CInt(..), CIntMax(..), CSize(..), CChar(..))
+import Foreign.C.String (peekCString)
 
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -135,8 +136,47 @@ toDouble x = unsafePerformIO $ withInRounded x $ \xfr -> mpfr_get_d xfr (rnd x)
 -- this syntax is strange, but it seems to be the way it works...
 {-# RULES "realToFrac/toDouble" forall (x :: (Rounding r, Precision p) => Rounded r p) . realToFrac x = toDouble x #-}
 
+foreign import ccall unsafe "mpfr_get_str" mpfr_get_str :: Ptr CChar -> Ptr MPFRExp -> Int -> CSize -> Ptr MPFR -> MPFRRnd -> IO (Ptr CChar)
+foreign import ccall unsafe "mpfr_free_str" mpfr_free_str :: Ptr CChar -> IO ()
+
+toString :: (Rounding r, Precision p) => Rounded r p -> String
+toString x = unsafePerformIO $ do
+  (s, e) <- withInRounded x $ \xfr -> with 0 $ \eptr -> do
+    s <- bracket (mpfr_get_str nullPtr eptr 10 0 xfr (fromIntegral (fromEnum TowardNearest))) mpfr_free_str peekCString
+    e <- peek eptr
+    return (s, fromIntegral e)
+  return $ case () of
+    _ | isNaN x -> "NaN"
+      | isInfinite x && sgn' == GT -> "Infinity"
+      | isInfinite x -> "-Infinity"
+      | isNegativeZero x -> "-0.0"
+      | sgn' == EQ -> "0.0"
+      | e <  0 ||
+        e >= threshold -> sign ++ take 1 digits  ++ "." ++
+                          dropTrailingZeroes (take (n - 1) (drop 1 digits0)) ++
+                          "e" ++ show (e - 1)
+      | e == 0         -> sign ++ "0." ++
+                          dropTrailingZeroes digits
+      | e <  threshold -> sign ++ take e digits0 ++ "." ++
+                          dropTrailingZeroes (take (n - e) (drop e digits0))
+      where
+        sgn' = sgn x
+        sign = case sgn' of
+          GT -> ""
+          EQ -> ""
+          LT -> "-"
+        threshold = 8
+        n = length digits
+        digits = case take 1 s of
+          "-" -> drop 1 s
+          _ -> s
+        digits0 = digits ++ repeat '0'
+        dropTrailingZeroes a = case dropWhile ('0' ==) (reverse a) of
+          "" -> "0"
+          b -> reverse b
+
 instance (Rounding r, Precision p) => Show (Rounded r p) where
-  showsPrec _ = showFloat
+  showsPrec p x = showParen (p >= 7) (toString x ++)
 
 
 type Unary = Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
