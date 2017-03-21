@@ -313,6 +313,9 @@ instance Rounding r => Ord (Rounded r p) where
 foreign import ccall unsafe "mpfr_set_z" mpfr_set_z :: Ptr MPFR -> Ptr MPZ -> MPFRRnd -> IO CInt
 foreign import ccall unsafe "mpfr_sgn" mpfr_sgn :: Ptr MPFR -> IO CInt
 
+sgn :: (Rounding r, Precision p) => Rounded r p -> Ordering
+sgn x = compare (unsafePerformIO $ withInRounded x mpfr_sgn) 0
+
 instance (Rounding r, Precision p) => Num (Rounded r p) where
   (+) = (.+.)
   (-) = (.-.)
@@ -323,7 +326,7 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
           (Just x, _) <- withInInteger j $ \jz -> withOutRounded_ $ \jfr -> mpfr_set_z jfr jz (rnd r)
           return x
   abs = abs'
-  signum x = case compare (unsafePerformIO $ withInRounded x mpfr_sgn) 0 of
+  signum x = case sgn x of
     LT -> -1
     EQ -> 0
     GT -> 1
