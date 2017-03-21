@@ -11,6 +11,7 @@
 -- |
 -- Module      :  Numeric.Rounded
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
+--                (C) 2013-2017 Claude Heiland-Allen
 -- License     :  LGPL
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  experimental
