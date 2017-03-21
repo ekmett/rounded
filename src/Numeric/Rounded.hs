@@ -194,7 +194,8 @@ toString x = unsafePerformIO $ do
           b -> reverse b
 
 instance (Rounding r, Precision p) => Show (Rounded r p) where
-  showsPrec p x = showParen (p >= 7) (toString x ++)
+  showsPrec p x = showParen (p >= 7 && take 1 s == "-") (s ++) -- FIXME: precedence issues?
+    where s = toString x
 
 
 type Unary = Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
