@@ -147,7 +147,7 @@ toDouble x = unsafePerformIO $ withInRounded x $ \xfr -> mpfr_get_d xfr (rnd x)
 -- | Round to a different precision with the given rounding mode.
 precRound :: (Rounding r, Precision p1, Precision p2) => Rounded r p1 -> Rounded r p2
 precRound x = unsafePerformIO $ do
-  (Just y, _) <- withInRounded x $ \xfr -> withOutRounded $ \yfr ->
+  (Just y, _) <- withInRounded x $ \xfr -> withOutRounded_ $ \yfr ->
     mpfr_set yfr xfr (rnd x)
   return y
 -- TODO figure out correct syntax (if even possible) to allow RULE
@@ -492,8 +492,8 @@ foreign import ccall unsafe "mpfr_modf" mpfr_modf :: Ptr MPFR -> Ptr MPFR -> Ptr
 modf :: (Rounding r, Precision p) => Rounded r p -> (Rounded r p, Rounded r p)
 modf x = unsafePerformIO $ do
   (Just y, (Just z, _)) <- withInRounded x $ \xfr ->
-    withOutRounded $ \yfr ->
-      withOutRounded $ \zfr ->
+    withOutRounded_ $ \yfr ->
+      withOutRounded_ $ \zfr ->
         mpfr_modf yfr zfr xfr (rnd x)
   return (y, z)
 
