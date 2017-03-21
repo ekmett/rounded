@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE KindSignatures #-}
@@ -78,6 +79,8 @@ module Numeric.Rounded
     , asinh_
     , atanh_
     , acosh_
+    , log1p_
+    , expm1_
     -- * Foreign Function Interface
     , withInRounded
     , withInOutRounded
@@ -107,6 +110,10 @@ import GHC.Prim
   )
 import GHC.Types (IO(..))
 import GHC.Exts (Ptr(..), Int(..))
+
+#if MIN_VERSION_base(4,9,0)
+import Numeric (Floating(..))
+#endif
 
 import Numeric.GMP.Utils (withInInteger, withOutInteger, withInRational)
 import Numeric.GMP.Types (MPZ, MPQ, MPLimb, MPExp(..))
@@ -210,6 +217,8 @@ foreign import ccall unsafe "mpfr_tanh" mpfr_tanh :: Unary
 foreign import ccall unsafe "mpfr_asinh" mpfr_asinh :: Unary
 foreign import ccall unsafe "mpfr_acosh" mpfr_acosh :: Unary
 foreign import ccall unsafe "mpfr_atanh" mpfr_atanh :: Unary
+foreign import ccall unsafe "mpfr_log1p" mpfr_log1p :: Unary
+foreign import ccall unsafe "mpfr_expm1" mpfr_expm1 :: Unary
 
 unary
   :: (Rounding r, Precision p1, Precision p2)
@@ -251,7 +260,8 @@ infixl 7 .*.
 
 abs_, negate_, log_, exp_, sqrt_,
  sin_, cos_, tan_, asin_, acos_, atan_,
-   sinh_, cosh_, tanh_, asinh_, acosh_, atanh_
+   sinh_, cosh_, tanh_, asinh_, acosh_, atanh_,
+     log1p_, expm1_
   :: (Rounding r, Precision p1, Precision p2)
   => Rounded r p1 -> Rounded r p2
 abs_ = unary mpfr_abs
@@ -271,6 +281,8 @@ tanh_ = unary mpfr_tanh
 asinh_ = unary mpfr_asinh
 acosh_ = unary mpfr_acosh
 atanh_ = unary mpfr_atanh
+log1p_ = unary mpfr_log1p
+expm1_ = unary mpfr_expm1
 
 type Binary = Ptr MPFR -> Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
 
@@ -456,6 +468,10 @@ instance (Rounding r, Precision p) => Floating (Rounded r p) where
   asinh = asinh_
   atanh = atanh_
   acosh = acosh_
+#if MIN_VERSION_base(4,9,0)
+  log1p = log1p_
+  expm1 = expm1_
+#endif
 
 toRational' :: Precision p => Rounded r p -> Rational
 toRational' r
