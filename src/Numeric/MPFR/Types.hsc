@@ -23,7 +23,7 @@ import Data.Ix
 import Data.Int
 import Data.Word
 
-import Foreign (Storable(..), Ptr, nullPtr)
+import Foreign (Storable(..), Ptr)
 
 import Numeric.GMP.Types (MPLimb(..))
 

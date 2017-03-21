@@ -90,8 +90,6 @@ import Data.Bits (shiftL)
 import Data.Int (Int32)
 import Data.Proxy (Proxy(..))
 import Data.Ratio ((%))
-import Data.Tuple (swap)
-import Numeric (showFloat)
 
 import Foreign (with, alloca, allocaBytes, peek, sizeOf, nullPtr)
 import Foreign.C (CInt(..), CIntMax(..), CSize(..), CChar(..))
@@ -612,7 +610,7 @@ peekRounded ptr f = do
   asByteArray d' (precBytes p') $ \l' -> reifyPrecision (fromIntegral p') (wrap f (Rounded p' s' e' l'))
   where
     wrap :: forall (p :: *) (r :: RoundingMode) (a :: *) . (Rounding r, Precision p) => (forall (q :: *) . Precision q => Rounded r q -> IO a) -> Rounded r p -> Proxy p -> IO a
-    wrap f r = \proxy -> f r
+    wrap g r = \_proxy -> g r
 
 
 -- "The number of limbs in use is controlled by _mpfr_prec, namely ceil(_mpfr_prec/mp_bits_per_limb)."
