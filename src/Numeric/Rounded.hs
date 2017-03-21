@@ -20,7 +20,7 @@
 ----------------------------------------------------------------------------
 module Numeric.Rounded
     (
-    -- * floating point numbers with a specified rounding mode and precision
+    -- * Floating point numbers with a specified rounding mode and precision
       Rounded(..)
     , fromInt
     , fromDouble
@@ -131,7 +131,7 @@ data Rounded (r :: RoundingMode) p = Rounded
 
 foreign import ccall unsafe "mpfr_get_d" mpfr_get_d :: Ptr MPFR -> MPFRRnd -> IO Double
 
--- | Round to Double with the given rounding mode.
+-- | Round to 'Double' with the given rounding mode.
 toDouble :: (Rounding r, Precision p) => Rounded r p -> Double
 toDouble x = unsafePerformIO $ withInRounded x $ \xfr -> mpfr_get_d xfr (rnd x)
 -- this syntax is strange, but it seems to be the way it works...

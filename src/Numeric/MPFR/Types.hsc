@@ -11,9 +11,8 @@
 -- Stability   :  experimental
 -- Portability :  non-portable
 --
+-- MPFR types.
 ----------------------------------------------------------------------------
-
--- | MPFR types.
 module Numeric.MPFR.Types where
 
 import Data.Data
