@@ -457,6 +457,7 @@ instance (Rounding r, Precision p) => Real (Rounded r p) where
   toRational = toRational'
 
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
+  -- FIXME: properFraction goes via Rational, needs optimization
   properFraction r = (i, fromRational f) where
     (i, f) = properFraction (toRational r)
 
