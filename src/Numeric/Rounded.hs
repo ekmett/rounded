@@ -82,6 +82,7 @@ module Numeric.Rounded
     , withInRounded
     , withInOutRounded
     , withOutRounded
+    , peekRounded
     ) where
 
 import Control.Exception (bracket, bracket_)
@@ -603,6 +604,16 @@ withInOutRounded i f =
     withInRounded i $ \ifr -> do
       mpfr_set ofr ifr (fromIntegral (fromEnum TowardNearest)) 
       f ofr
+
+-- | Peek an @mpfr_t@ with reified precision.
+peekRounded :: Rounding r => Ptr MPFR -> (forall (p :: *) . Precision p => Rounded r p -> IO a) -> IO a
+peekRounded ptr f = do
+  MPFR{ mpfrPrec = p', mpfrSign = s', mpfrExp = e', mpfrD = d' } <- peek ptr
+  asByteArray d' (precBytes p') $ \l' -> reifyPrecision (fromIntegral p') (wrap f (Rounded p' s' e' l'))
+  where
+    wrap :: forall (p :: *) (r :: RoundingMode) (a :: *) . (Rounding r, Precision p) => (forall (q :: *) . Precision q => Rounded r q -> IO a) -> Rounded r p -> Proxy p -> IO a
+    wrap f r = \proxy -> f r
+
 
 -- "The number of limbs in use is controlled by _mpfr_prec, namely ceil(_mpfr_prec/mp_bits_per_limb)."
 -- <http://www.mpfr.org/mpfr-current/mpfr.html#Internals>
