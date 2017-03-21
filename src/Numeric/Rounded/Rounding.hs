@@ -30,13 +30,13 @@ import Data.Data
 import Data.Singletons
 
 data RoundingMode
-  = TowardNearestWithTiesAwayFromZero
-  | TowardNearest
-  | TowardZero
-  | TowardInf
-  | TowardNegInf
-  | AwayFromZero
-  | Faithfully
+  = TowardNearestWithTiesAwayFromZero -- ^ currently unsupported placeholder
+  | TowardNearest -- ^ roundTiesToEven in IEEE 754-2008
+  | TowardZero    -- ^ roundTowardZero in IEEE 754-2008
+  | TowardInf     -- ^ roundTowardPositive in IEEE 754-2008
+  | TowardNegInf  -- ^ roundTowardNegative in IEEE 754-2008
+  | AwayFromZero  -- ^ round away from zero
+  | Faithfully    -- ^ currently unsupported placeholder
   deriving (Eq,Ord,Show,Read,Data,Typeable)
 
 class Rounding (r :: RoundingMode) where rounding :: Proxy r -> RoundingMode
