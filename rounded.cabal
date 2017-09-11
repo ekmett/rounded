@@ -36,7 +36,9 @@ library
   exposed-modules:
     Numeric.Rounded
     Numeric.Rounded.Interval
+    Numeric.Rounded.Simple
     Numeric.MPFR.Types
+    Numeric.MPFR.Raw.Unsafe
 
   other-modules:
     Numeric.Rounded.Rounding
