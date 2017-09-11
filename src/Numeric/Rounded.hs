@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PolyKinds #-}
@@ -26,6 +25,7 @@ module Numeric.Rounded
     , fromInt
     , fromDouble
     , toDouble
+    , toInteger'
     , precRound
     -- * Precision
     , Precision(precision)
@@ -81,6 +81,7 @@ module Numeric.Rounded
     , acosh_
     , log1p_
     , expm1_
+    , atan2_
     -- * Foreign Function Interface
     , withInRounded
     , withInOutRounded
@@ -99,7 +100,7 @@ import Data.Proxy (Proxy(..))
 import Data.Ratio ((%))
 
 import Foreign (with, alloca, allocaBytes, peek, sizeOf, nullPtr)
-import Foreign.C (CInt(..), CIntMax(..), CSize(..), CChar(..))
+import Foreign.C (CInt(..), CIntMax(..))
 import Foreign.C.String (peekCString)
 
 import System.IO.Unsafe (unsafePerformIO)
@@ -121,9 +122,10 @@ import Numeric (Floating(..))
 import Numeric (readSigned, readFloat)
 
 import Numeric.GMP.Utils (withInInteger, withOutInteger, withOutInteger_, withInRational)
-import Numeric.GMP.Types (MPZ, MPQ, MPLimb)
+import Numeric.GMP.Types (MPLimb)
 
 import Numeric.MPFR.Types
+import Numeric.MPFR.Raw.Unsafe
 
 import Numeric.Rounded.Precision
 import Numeric.Rounded.Rounding
@@ -141,8 +143,6 @@ data Rounded (r :: RoundingMode) p = Rounded
   , roundedLimbs :: !ByteArray#
   }
 
-foreign import ccall unsafe "mpfr_get_d" mpfr_get_d :: Ptr MPFR -> MPFRRnd -> IO Double
-
 -- | Round to 'Double' with the given rounding mode.
 toDouble :: (Rounding r, Precision p) => Rounded r p -> Double
 toDouble x = unsafePerformIO $ in_ x $ \xfr -> mpfr_get_d xfr (rnd x)
@@ -157,9 +157,6 @@ precRound x = unsafePerformIO $ do
   return y
 -- TODO figure out correct syntax (if even possible) to allow RULE
 -- {-# RULES "realToFrac/precRound" realToFrac = precRound #-}
-
-foreign import ccall unsafe "mpfr_get_str" mpfr_get_str :: Ptr CChar -> Ptr MPFRExp -> Int -> CSize -> Ptr MPFR -> MPFRRnd -> IO (Ptr CChar)
-foreign import ccall unsafe "mpfr_free_str" mpfr_free_str :: Ptr CChar -> IO ()
 
 toString :: (Rounding r, Precision p) => Rounded r p -> String
 -- FIXME: what do about unsightly 0.1 -> 0.1000...0002 or 9.999...9995e-2 issues
@@ -205,29 +202,6 @@ instance (Rounding r, Precision p) => Show (Rounded r p) where
 instance (Rounding r, Precision p) => Read (Rounded r p) where
   -- apparently this handles parens without any extra fuss
   readsPrec _ = readSigned readFloat -- FIXME: precedence issues?
-
-type Unary = Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
-
-foreign import ccall unsafe "mpfr_set" mpfr_set :: Unary
-foreign import ccall unsafe "mpfr_abs" mpfr_abs :: Unary
-foreign import ccall unsafe "mpfr_neg" mpfr_neg :: Unary
-foreign import ccall unsafe "mpfr_log" mpfr_log :: Unary
-foreign import ccall unsafe "mpfr_exp" mpfr_exp :: Unary
-foreign import ccall unsafe "mpfr_sqrt" mpfr_sqrt :: Unary
-foreign import ccall unsafe "mpfr_sin" mpfr_sin :: Unary
-foreign import ccall unsafe "mpfr_cos" mpfr_cos :: Unary
-foreign import ccall unsafe "mpfr_tan" mpfr_tan :: Unary
-foreign import ccall unsafe "mpfr_asin" mpfr_asin :: Unary
-foreign import ccall unsafe "mpfr_acos" mpfr_acos :: Unary
-foreign import ccall unsafe "mpfr_atan" mpfr_atan :: Unary
-foreign import ccall unsafe "mpfr_sinh" mpfr_sinh :: Unary
-foreign import ccall unsafe "mpfr_cosh" mpfr_cosh :: Unary
-foreign import ccall unsafe "mpfr_tanh" mpfr_tanh :: Unary
-foreign import ccall unsafe "mpfr_asinh" mpfr_asinh :: Unary
-foreign import ccall unsafe "mpfr_acosh" mpfr_acosh :: Unary
-foreign import ccall unsafe "mpfr_atanh" mpfr_atanh :: Unary
-foreign import ccall unsafe "mpfr_log1p" mpfr_log1p :: Unary
-foreign import ccall unsafe "mpfr_expm1" mpfr_expm1 :: Unary
 
 unary
   :: (Rounding r, Precision p1, Precision p2)
@@ -293,16 +267,6 @@ atanh_ = unary mpfr_atanh
 log1p_ = unary mpfr_log1p
 expm1_ = unary mpfr_expm1
 
-type Binary = Ptr MPFR -> Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
-
-foreign import ccall unsafe "mpfr_add" mpfr_add :: Binary
-foreign import ccall unsafe "mpfr_sub" mpfr_sub :: Binary
-foreign import ccall unsafe "mpfr_mul" mpfr_mul :: Binary
-foreign import ccall unsafe "mpfr_div" mpfr_div :: Binary
-foreign import ccall unsafe "mpfr_min" mpfr_min :: Binary
-foreign import ccall unsafe "mpfr_max" mpfr_max :: Binary
-foreign import ccall unsafe "mpfr_atan2" mpfr_atan2 :: Binary
-
 binary
   :: (Rounding r, Precision p1, Precision p2, Precision p3)
   => Binary -> Rounded r p1 -> Rounded r p2 -> Rounded r p3
@@ -334,16 +298,6 @@ binary' f a b = unsafePerformIO $ do
       out_' (roundedPrec a) $ \cfr ->
         f cfr afr bfr (rnd a)
   return c
-
-type Comparison = Ptr MPFR -> Ptr MPFR -> IO CInt
-
-foreign import ccall unsafe "mpfr_cmp"            mpfr_cmp            :: Comparison
-foreign import ccall unsafe "mpfr_equal_p"        mpfr_equal_p        :: Comparison
-foreign import ccall unsafe "mpfr_lessgreater_p"  mpfr_lessgreater_p  :: Comparison
-foreign import ccall unsafe "mpfr_less_p"         mpfr_less_p         :: Comparison
-foreign import ccall unsafe "mpfr_greater_p"      mpfr_greater_p      :: Comparison
-foreign import ccall unsafe "mpfr_lessequal_p"    mpfr_lessequal_p    :: Comparison
-foreign import ccall unsafe "mpfr_greaterequal_p" mpfr_greaterequal_p :: Comparison
 
 cmp' :: Comparison -> Rounded r p1 -> Rounded r p2 -> CInt
 cmp' f a b = unsafePerformIO $
@@ -382,9 +336,6 @@ instance Rounding r => Ord (Rounded r p) where
   min = binary' mpfr_min
   max = binary' mpfr_max
 
-foreign import ccall unsafe "mpfr_set_z" mpfr_set_z :: Ptr MPFR -> Ptr MPZ -> MPFRRnd -> IO CInt
-foreign import ccall unsafe "mpfr_sgn" mpfr_sgn :: Ptr MPFR -> IO CInt
-
 sgn :: (Rounding r, Precision p) => Rounded r p -> Ordering
 sgn x = compare (unsafePerformIO $ in_ x mpfr_sgn) 0
 
@@ -408,16 +359,12 @@ instance (Rounding r, Precision p) => Num (Rounded r p) where
     EQ -> 0
     GT -> 1
 
-foreign import ccall unsafe "mpfr_set_q" mpfr_set_q :: Ptr MPFR -> Ptr MPQ -> MPFRRnd -> IO CInt
-
 instance (Rounding r, Precision p) => Fractional (Rounded r p) where
   fromRational q = r where -- TODO small integer optimisation
     r = unsafePerformIO $ do
           (Just x, _) <- withInRational q $ \qq -> out_ $ \qfr -> mpfr_set_q qfr qq (rnd r)
           return x
   (/) = (!/!)
-
-foreign import ccall unsafe "__gmpfr_set_sj" mpfr_set_sj :: Ptr MPFR -> CIntMax -> MPFRRnd -> IO CInt
 
 -- | Construct a properly rounded floating point number from an 'Int'.
 fromInt :: (Rounding r, Precision p) => Int -> Rounded r p
@@ -428,8 +375,6 @@ fromInt i = r
       return x
 -- TODO figure out correct syntax (if even possible) to allow RULE
 -- {-# RULES "fromIntegral/fromInt" fromIntegral = fromInt #-}
-
-foreign import ccall unsafe "mpfr_set_d" mpfr_set_d :: Ptr MPFR -> Double -> MPFRRnd -> IO CInt
 
 -- | Construct a rounded floating point number directly from a 'Double'.
 fromDouble :: (Rounding r, Precision p) => Double -> Rounded r p
@@ -442,9 +387,6 @@ fromDouble d = r
 -- {-# RULES "realToFrac/fromDouble" realToFrac = fromDouble #-}
 
 
-foreign import ccall unsafe "mpfr_nextabove" mpfr_nextabove :: Ptr MPFR -> IO ()
-foreign import ccall unsafe "mpfr_nextbelow" mpfr_nextbelow :: Ptr MPFR -> IO ()
-
 inplace :: (Ptr MPFR -> IO ()) -> Rounded r p -> Rounded r p
 inplace f y = unsafePerformIO $ do
   (Just x, _) <- out_' (roundedPrec y) $ \xfr -> in_ y $ \yfr -> do
@@ -455,8 +397,6 @@ inplace f y = unsafePerformIO $ do
 succUlp, predUlp :: Rounded r p -> Rounded r p
 succUlp = inplace mpfr_nextabove
 predUlp = inplace mpfr_nextbelow
-
-type Constant = Ptr MPFR -> MPFRRnd -> IO CInt
 
 constant :: (Rounding r, Precision p) => Constant -> Rounded r p
 constant k = r where
@@ -496,8 +436,6 @@ toRational' r
 instance (Rounding r, Precision p) => Real (Rounded r p) where
   toRational = toRational'
 
-foreign import ccall unsafe "mpfr_modf" mpfr_modf :: Ptr MPFR -> Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
-
 modf :: (Rounding r, Precision p) => Rounded r p -> (Rounded r p, Rounded r p)
 modf x = unsafePerformIO $ do
   (Just y, (Just z, _)) <- in_ x $ \xfr ->
@@ -505,8 +443,6 @@ modf x = unsafePerformIO $ do
       out_ $ \zfr ->
         mpfr_modf yfr zfr xfr (rnd x)
   return (y, z)
-
-foreign import ccall unsafe "wrapped_mpfr_get_z" wrapped_mpfr_get_z :: Ptr MPZ -> Ptr MPFR -> MPFRRnd -> Ptr CInt -> IO CInt
 
 toInteger' :: (Rounding r, Precision p) => Rounded r p -> Integer
 toInteger' x = unsafePerformIO $
@@ -530,21 +466,10 @@ instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
                   EQ -> if even n then n else m
                   GT -> m
 
-type Test = Ptr MPFR -> IO CInt
-
 tst :: (Precision p) => Test -> Rounded r p -> Bool
 tst f x = unsafePerformIO $ in_ x $ \xfr -> do
   t <- f xfr
   return (t /= 0)
-
-foreign import ccall unsafe "mpfr_nan_p" mpfr_nan_p :: Test
-foreign import ccall unsafe "mpfr_inf_p" mpfr_inf_p :: Test
-foreign import ccall unsafe "mpfr_zero_p" mpfr_zero_p :: Test
-foreign import ccall unsafe "mpfr_signbit" mpfr_signbit :: Test
-
-foreign import ccall unsafe "wrapped_mpfr_get_z_2exp" wrapped_mpfr_get_z_2exp :: Ptr MPZ -> Ptr MPFR -> Ptr CInt -> IO MPFRExp
-foreign import ccall unsafe "mpfr_set_z_2exp" mpfr_set_z_2exp :: Ptr MPFR -> Ptr MPZ -> MPFRExp -> MPFRRnd -> IO CInt
-
 
 decodeFloat' :: Rounded r p -> (Integer, Int)
 decodeFloat' x = case (unsafePerformIO $ do
@@ -583,11 +508,6 @@ instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
   isIEEE _ = True -- is this a lie? it mostly behaves like an IEEE float, despite being much bigger
   atan2 = atan2_
 
-foreign import ccall unsafe "mpfr_const_pi" mpfr_const_pi :: Constant
-foreign import ccall unsafe "mpfr_const_log2" mpfr_const_log2 :: Constant
-foreign import ccall unsafe "mpfr_const_euler" mpfr_const_euler :: Constant
-foreign import ccall unsafe "mpfr_const_catalan" mpfr_const_catalan :: Constant
-
 kPi :: (Rounding r, Precision p) => Rounded r p
 kPi = constant mpfr_const_pi
 
@@ -615,12 +535,6 @@ in_' (Rounded p s e l) f = withByteArray l $ \ptr _bytes -> f MPFR
 in_ :: Rounded r p -> (Ptr MPFR -> IO a) -> IO a
 in_ x f = in_' x $ \y -> with y f
 
-
-foreign import ccall unsafe "mpfr_init2"
-  mpfr_init2 :: Ptr MPFR -> MPFRPrec -> IO ()
-
-foreign import ccall unsafe "mpfr_clear"
-  mpfr_clear :: Ptr MPFR -> IO ()
 
 out_' :: MPFRPrec -> (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
 out_' p f = allocaBytes (precBytes p) $ \d -> with
