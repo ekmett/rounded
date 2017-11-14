@@ -74,11 +74,21 @@ module Numeric.Rounded.Simple
   , show'
   -- * Read
   , read'
+  -- * Foreign Function Interface
+  , withInRounded
+  , withInOutRounded
+  , withInOutRounded_
+  , withOutRounded
+  , withOutRounded_
+  , peekRounded
   ) where
 
+import Control.Exception (bracket_)
+import Foreign (Ptr(..), alloca)
 import GHC.Prim ( ByteArray# )
 
 import Numeric.MPFR.Types
+import Numeric.MPFR.Raw.Unsafe (mpfr_init2, mpfr_clear, mpfr_set)
 import qualified Numeric.Rounded as R
 import Numeric.Rounded.Rounding
 
@@ -293,3 +303,48 @@ read' r p s = R.reifyRounding r (\pr -> R.reifyPrecision p (\pp -> g pr pp (read
   where
     g :: (R.Rounding r, R.Precision p) => proxy1 r -> proxy2 p -> R.Rounded r p -> Rounded
     g _ _ x = simplify x
+
+-- Foreign Function Interface
+
+-- | Use a value as a /constant/ @mpfr_t@ (attempts to modify it may explode,
+--   changing the precision will explode).
+withInRounded :: Rounded -> (Ptr MPFR -> IO a) -> IO a
+withInRounded a f = reifyRounded a (\ra -> R.withInRounded ra f)
+
+-- | Allocates and initializes a new @mpfr_t@, after the action it is peeked
+--   and returned.
+withOutRounded :: Precision -> (Ptr MPFR -> IO a) -> IO (Rounded, a)
+withOutRounded prec f = r where
+  r = alloca $ \ptr -> bracket_ (mpfr_init2 ptr (fromIntegral prec)) (mpfr_clear ptr) $ do
+    a <- f ptr
+    m <- peekRounded ptr
+    return (m, a)
+
+-- | Allocates and initializes a new @mpfr_t@, after the action it is peeked
+--   and returned.
+--   The result of the action is ignored.
+withOutRounded_ :: Precision -> (Ptr MPFR -> IO a) -> IO Rounded
+withOutRounded_ p = fmap fst . withOutRounded p
+
+-- | Allocates and initializes a new @mpfr_t@ to the value.  After the action
+--   it is peeked and returned.
+withInOutRounded :: Rounded -> (Ptr MPFR -> IO a) -> IO (Rounded, a)
+-- FIXME: optimize to reduce copying
+withInOutRounded i f =
+  withOutRounded (fromIntegral (roundedPrec i)) $ \ofr ->
+    withInRounded i $ \ifr -> do
+      _ <- mpfr_set ofr ifr (fromIntegral (fromEnum TowardNearest))
+      f ofr
+
+-- | Allocates and initializes a new @mpfr_t@ to the value.  After the action
+--   it is peeked and returned.
+--   The result of the action is ignored.
+withInOutRounded_ :: Rounded -> (Ptr MPFR -> IO a) -> IO Rounded
+withInOutRounded_ x = fmap fst . withInOutRounded x
+
+-- | Peek an @mpfr_t@ at its actual precision, reified.
+peekRounded :: Ptr MPFR -> IO Rounded
+peekRounded ptr = R.peekRounded ptr f
+  where
+    f :: R.Precision p => R.Rounded TowardNearest p -> IO Rounded
+    f mr = return (simplify mr)
