@@ -5,6 +5,7 @@ module Numeric.Rounded.Simple
   ( RoundingMode(..)
   , Precision
   , Rounded()
+  , precision
   , reifyRounded
   , simplify
   , Constant
