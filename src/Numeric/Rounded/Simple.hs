@@ -233,11 +233,11 @@ floatRange' = unary'' floatRange
 decodeFloat' :: Rounded -> (Integer, Int)
 decodeFloat' = unary'' decodeFloat
 
-encodeFloat' :: Precision -> Integer -> Int -> Rounded
-encodeFloat' p m e = R.reifyPrecision p (\pp -> g pp (encodeFloat m e))
+encodeFloat' :: RoundingMode -> Precision -> Integer -> Int -> Rounded
+encodeFloat' r p m e = R.reifyRounding r (\rp -> R.reifyPrecision p (\pp -> g rp pp (encodeFloat m e)))
   where
-    g :: R.Precision p => proxy p -> R.Rounded R.TowardNearest p -> Rounded
-    g _ x = simplify x
+    g :: R.Precision p => proxy1 r -> proxy2 p -> R.Rounded r p -> Rounded
+    g _ _ x = simplify x
 
 exponent' :: Rounded -> Int
 exponent' = unary'' exponent
