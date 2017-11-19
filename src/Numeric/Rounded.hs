@@ -1,20 +1,17 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE GHCForeignImportPrim #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE RoleAnnotations #-}
-{-# LANGUAGE UnliftedFFITypes #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Rounded
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
+--                (C) 2013-2017 Claude Heiland-Allen
 -- License     :  LGPL
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  experimental
@@ -23,10 +20,13 @@
 ----------------------------------------------------------------------------
 module Numeric.Rounded
     (
-    -- * floating point numbers with a specified rounding mode and precision
+    -- * Floating point numbers with a specified rounding mode and precision
       Rounded(..)
     , fromInt
     , fromDouble
+    , toDouble
+    , toInteger'
+    , precRound
     -- * Precision
     , Precision(precision)
     , Bytes
@@ -48,276 +48,386 @@ module Numeric.Rounded
     , decodeFloat'
     , succUlp
     , predUlp
+    -- * Mixed-precision operations
+    , (!+!)
+    , (!-!)
+    , (!*!)
+    , abs_
+    , negate_
+    , (!/!)
+    , (!==!)
+    , (!/=!)
+    , compare_
+    , (!>=!)
+    , (!<=!)
+    , (!>!)
+    , (!<!)
+    , min_
+    , max_
+    , sqrt_
+    , exp_
+    , log_
+    , sin_
+    , tan_
+    , cos_
+    , asin_
+    , atan_
+    , acos_
+    , sinh_
+    , tanh_
+    , cosh_
+    , asinh_
+    , atanh_
+    , acosh_
+    , log1p_
+    , expm1_
+    , atan2_
+    -- * Foreign Function Interface
+    , withInRounded
+    , withInOutRounded
+    , withInOutRounded_
+    , withOutRounded
+    , withOutRounded_
+    , unsafeWithOutRounded
+    , unsafeWithOutRounded_
+    , peekRounded
     ) where
 
-import Data.Proxy
-import Data.Bits
-import GHC.Integer.GMP.Internals
-import GHC.Integer.GMP.Prim
+import Control.Exception (bracket, bracket_, throwIO, ArithException(Overflow))
+import Data.Bits (shiftL, testBit)
+import Data.Int (Int32)
+import Data.Proxy (Proxy(..))
+import Data.Ratio ((%))
+
+import Foreign (with, alloca, allocaBytes, peek, sizeOf, nullPtr)
+import Foreign.C (CInt(..), CIntMax(..))
+import Foreign.C.String (peekCString)
+
+import System.IO.Unsafe (unsafePerformIO)
+
 import GHC.Prim
-import GHC.Types
-import GHC.Real
-import GHC.Int
+  ( ByteArray#
+  , sizeofByteArray#
+  , copyByteArrayToAddr#
+  , newByteArray#
+  , copyAddrToByteArray#
+  , unsafeFreezeByteArray#
+  )
+import GHC.Types (IO(..))
+import GHC.Exts (Ptr(..), Int(..))
+
+#if MIN_VERSION_base(4,9,0)
+import Numeric (Floating(..))
+#endif
+import Numeric (readSigned, readFloat)
+
+import Numeric.GMP.Utils (withInInteger, withOutInteger, withOutInteger_, withInRational)
+import Numeric.GMP.Types (MPLimb)
+
+import Numeric.MPFR.Types
+import Numeric.MPFR.Raw.Unsafe
+
 import Numeric.Rounded.Precision
-import Control.Parallel()
 import Numeric.Rounded.Rounding
-import System.IO.Unsafe()
-import Numeric
 
-prec# :: forall proxy p. Precision p => proxy p -> Int#
-prec# p = case precision p of
-  I# i# -> i#
-
-mode# :: forall proxy r. Rounding r => proxy r -> Int#
-mode# = case fromEnum (rounding (Proxy :: Proxy r)) of
-  I# i# -> \_ -> i#
-
-type CSignPrec#  = Int#
-type CPrecision# = Int#
-type CExp#       = Int#
-type CRounding#  = Int#
-
-prec_bit :: Int
-prec_bit
-  | b63 == 0  = b31
-  | otherwise = b63
-  where b63 = bit 63
-        b31 = bit 31
 
 type role Rounded phantom nominal
 
 -- | A properly rounded floating-point number with a given rounding mode and precision.
 --
--- you can 'Data.Coerce.coerce' to change rounding modes, but not precision.
+-- You can 'Data.Coerce.coerce' to change rounding modes, but not precision.
 data Rounded (r :: RoundingMode) p = Rounded
-  { roundedSignPrec :: CSignPrec# -- Sign# << 64/32 | Precision#
-  , roundedExp      :: CExp#
-  , roundedLimbs    :: ByteArray#
+  { roundedPrec  :: !MPFRPrec
+  , roundedSign  :: !MPFRSign
+  , roundedExp   :: !MPFRExp
+  , roundedLimbs :: !ByteArray#
   }
 
--- We could use this in a rewrite rule for fast conversions to Double...
--- foreign import prim "mpfr_cmm_get_d"       mpfr_cmm_get_d :: CRounding# -> CSignPrec# -> CExp# -> ByteArray# -> Double#
+-- | Round to 'Double' with the given rounding mode.
+toDouble :: (Rounding r, Precision p) => Rounded r p -> Double
+toDouble x = unsafePerformIO $ in_ x $ \xfr -> mpfr_get_d xfr (rnd x)
+-- this syntax is strange, but it seems to be the way it works...
+{-# RULES "realToFrac/toDouble" forall (x :: (Rounding r, Precision p) => Rounded r p) . realToFrac x = toDouble x #-}
+
+-- | Round to a different precision with the given rounding mode.
+precRound :: (Rounding r, Precision p1, Precision p2) => Rounded r p1 -> Rounded r p2
+precRound x = unsafePerformIO $ do
+  (Just y, _) <- in_ x $ \xfr -> out_ $ \yfr ->
+    mpfr_set yfr xfr (rnd x)
+  return y
+-- TODO figure out correct syntax (if even possible) to allow RULE
+-- {-# RULES "realToFrac/precRound" realToFrac = precRound #-}
+
+toString :: (Rounding r, Precision p) => Rounded r p -> String
+-- FIXME: what do about unsightly 0.1 -> 0.1000...0002 or 9.999...9995e-2 issues
+toString x = unsafePerformIO $ do
+  (s, e) <- in_ x $ \xfr -> with 0 $ \eptr -> do
+    s <- bracket (mpfr_get_str nullPtr eptr 10 0 xfr (fromIntegral (fromEnum TowardNearest))) mpfr_free_str peekCString
+    e <- peek eptr
+    return (s, fromIntegral e)
+  return $ case () of
+    _ | isNaN x -> "NaN"
+      | isInfinite x && sgn' == GT -> "Infinity"
+      | isInfinite x -> "-Infinity"
+      | isNegativeZero x -> "-0.0"
+      | sgn' == EQ -> "0.0"
+      | e <  0 ||
+        e >= threshold -> sign ++ take 1 digits  ++ "." ++
+                          dropTrailingZeroes (take (n - 1) (drop 1 digits0)) ++
+                          "e" ++ show (e - 1)
+      | e == 0         -> sign ++ "0." ++
+                          dropTrailingZeroes digits
+      | e <  threshold -> sign ++ take e digits0 ++ "." ++
+                          dropTrailingZeroes (take (n - e) (drop e digits0))
+      where
+        sgn' = sgn x
+        sign = case sgn' of
+          GT -> ""
+          EQ -> ""
+          LT -> "-"
+        threshold = 8
+        n = length digits
+        digits = case take 1 s of
+          "-" -> drop 1 s
+          _ -> s
+        digits0 = digits ++ repeat '0'
+        dropTrailingZeroes a = case dropWhile ('0' ==) (reverse a) of
+          "" -> "0"
+          b -> reverse b
 
 instance (Rounding r, Precision p) => Show (Rounded r p) where
-  showsPrec _ = showFloat
+  showsPrec p x = showParen (p >= 7 && take 1 s == "-") (s ++) -- FIXME: precedence issues?
+    where s = toString x
 
--- | N.B.: similar to Unary, assumes that output precision is same as precsion of _second_ operand
-type Binary
-  = CRounding# ->
-    CSignPrec# -> CExp# -> ByteArray# ->
-    CSignPrec# -> CExp# -> ByteArray# ->
-    (# CSignPrec#, CExp#, ByteArray# #)
+instance (Rounding r, Precision p) => Read (Rounded r p) where
+  -- apparently this handles parens without any extra fuss
+  readsPrec _ = readSigned readFloat -- FIXME: precedence issues?
 
-foreign import prim "mpfr_cmm_add" mpfrAdd# :: Binary
-foreign import prim "mpfr_cmm_sub" mpfrSub# :: Binary
-foreign import prim "mpfr_cmm_mul" mpfrMul# :: Binary
-foreign import prim "mpfr_cmm_div" mpfrDiv# :: Binary
-foreign import prim "mpfr_cmm_min" mpfrMin# :: Binary
-foreign import prim "mpfr_cmm_max" mpfrMax# :: Binary
+unary
+  :: (Rounding r, Precision p1, Precision p2)
+  => Unary -> Rounded r p1 -> Rounded r p2
+unary f a = unsafePerformIO $ do
+  (Just c, _) <- in_ a $ \afr ->
+    out_ $ \cfr ->
+      f cfr afr (rnd a)
+  return c
 
-type Comparison
-  = CSignPrec# -> CExp# -> ByteArray# ->
-    CSignPrec# -> CExp# -> ByteArray# ->
-    Int#
+unary' :: Rounding r => Unary -> Rounded r p -> Rounded r p
+unary' f a = unsafePerformIO $ do
+  (Just c, _) <- in_ a $ \afr ->
+    out_' (roundedPrec a) $ \cfr ->
+      f cfr afr (rnd a)
+  return c
 
-foreign import prim "mpfr_cmm_equal_p"         mpfrEqual#        :: Comparison
-foreign import prim "mpfr_cmm_lessgreater_p"   mpfrNotEqual#     :: Comparison
-foreign import prim "mpfr_cmm_less_p"          mpfrLess#         :: Comparison
-foreign import prim "mpfr_cmm_greater_p"       mpfrGreater#      :: Comparison
-foreign import prim "mpfr_cmm_lessequal_p"     mpfrLessEqual#    :: Comparison
-foreign import prim "mpfr_cmm_greaterequal_p"  mpfrGreaterEqual# :: Comparison
+unary'' :: Unary -> Rounded r p -> Rounded r p
+unary'' f a = unsafePerformIO $ do
+  (Just c, _) <- in_ a $ \afr ->
+    out_' (roundedPrec a) $ \cfr ->
+      f cfr afr (fromIntegral (fromEnum TowardNearest))
+  return c
 
-cmp :: (CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#) -> Rounded r p -> Rounded r p -> Bool
-cmp f (Rounded s e l) (Rounded s' e' l') = I# (f s e l s' e' l') /= 0
+abs' :: Rounded r p -> Rounded r p
+abs' = unary'' mpfr_abs
 
-binary :: Rounding r => Binary -> Rounded r p -> Rounded r p -> Rounded r p
-binary f (Rounded s e l) (Rounded s' e' l') = r where
-  r = case f (mode# (proxyRounding r)) s e l s' e' l' of
-    (# s'', e'', l'' #) -> Rounded s'' e'' l''
+negate' :: Rounding r => Rounded r p -> Rounded r p
+negate' = unary' mpfr_neg
 
-instance Eq (Rounded r p) where
-  (==) = cmp mpfrEqual#
-  (/=) = cmp mpfrNotEqual#
-
-foreign import prim "mpfr_cmm_cmp" mpfrCmp# :: CSignPrec# -> CExp# -> ByteArray# -> CSignPrec# -> CExp# -> ByteArray# -> Int#
-
-instance Rounding r => Ord (Rounded r p) where
-  compare (Rounded s e l) (Rounded s' e' l') = compare (fromIntegral (I# (mpfrCmp# s e l s' e' l'))) (0 :: Int32)
-  (<=) = cmp mpfrLessEqual#
-  (>=) = cmp mpfrGreaterEqual#
-  (<) = cmp mpfrLess#
-  (>) = cmp mpfrGreater#
-  -- we shed the Rounding r dependency if we drop these, but give wrong answers on negative 0
-  min = binary mpfrMin#
-  max = binary mpfrMax#
-
-foreign import prim "mpfr_cmm_sgn" mpfrSgn# :: CSignPrec# -> CExp# -> ByteArray# -> Int#
+(.-.), (.+.), (.*.) :: Rounding r => Rounded r p -> Rounded r p -> Rounded r p
+(.-.) = binary' mpfr_sub
+(.+.) = binary' mpfr_add
+(.*.) = binary' mpfr_mul
 
 infixl 6 .+., .-.
 infixl 7 .*.
 
-(.+.) :: Rounding r => Rounded r p -> Rounded r p -> Rounded r p
-(.+.) = binary mpfrAdd#
 
-(.-.) :: Rounding r => Rounded r p -> Rounded r p -> Rounded r p
-(.-.) = binary mpfrSub#
+abs_, negate_, log_, exp_, sqrt_,
+ sin_, cos_, tan_, asin_, acos_, atan_,
+   sinh_, cosh_, tanh_, asinh_, acosh_, atanh_,
+     log1p_, expm1_
+  :: (Rounding r, Precision p1, Precision p2)
+  => Rounded r p1 -> Rounded r p2
+abs_ = unary mpfr_abs
+negate_ = unary mpfr_neg
+log_ = unary mpfr_log
+exp_ = unary mpfr_exp
+sqrt_ = unary mpfr_sqrt
+sin_ = unary mpfr_sin
+cos_ = unary mpfr_cos
+tan_ = unary mpfr_tan
+asin_ = unary mpfr_asin
+acos_ = unary mpfr_acos
+atan_ = unary mpfr_atan
+sinh_ = unary mpfr_sinh
+cosh_ = unary mpfr_cosh
+tanh_ = unary mpfr_tanh
+asinh_ = unary mpfr_asinh
+acosh_ = unary mpfr_acosh
+atanh_ = unary mpfr_atanh
+log1p_ = unary mpfr_log1p
+expm1_ = unary mpfr_expm1
 
-(.*.) :: Rounding r => Rounded r p -> Rounded r p -> Rounded r p
-(.*.) = binary mpfrMul#
+binary
+  :: (Rounding r, Precision p1, Precision p2, Precision p3)
+  => Binary -> Rounded r p1 -> Rounded r p2 -> Rounded r p3
+binary f a b = unsafePerformIO $ do
+  (Just c, _) <- in_ a $ \afr ->
+    in_ b $ \bfr ->
+      out_ $ \cfr ->
+        f cfr afr bfr (rnd a)
+  return c
 
-abs' :: Rounded r p -> Rounded r p
-abs' (Rounded s e l) = case I# s .&. complement prec_bit of
-  I# s' -> Rounded s' e l
+min_, max_, (!+!), (!-!), (!*!), (!/!), atan2_
+  :: (Rounding r, Precision p1, Precision p2, Precision p3)
+  => Rounded r p1 -> Rounded r p2 -> Rounded r p3
+min_ = binary mpfr_min
+max_ = binary mpfr_max
+(!+!) = binary mpfr_add
+(!-!) = binary mpfr_sub
+(!*!) = binary mpfr_mul
+(!/!) = binary mpfr_div
+atan2_ = binary mpfr_atan2
 
-negate' :: Rounding r => Rounded r p -> Rounded r p
-negate' = unary mpfrNeg#
+infixl 6 !+!, !-!
+infixl 7 !*!, !/!
+
+binary' :: Rounding r => Binary -> Rounded r p -> Rounded r p -> Rounded r p
+binary' f a b = unsafePerformIO $ do
+  (Just c, _) <- in_ a $ \afr ->
+    in_ b $ \bfr ->
+      out_' (roundedPrec a) $ \cfr ->
+        f cfr afr bfr (rnd a)
+  return c
+
+cmp' :: Comparison -> Rounded r p1 -> Rounded r p2 -> CInt
+cmp' f a b = unsafePerformIO $
+  in_ a $ \afr ->
+  in_ b $ \bfr -> do
+  f afr bfr
+
+cmp :: Comparison -> Rounded r p1 -> Rounded r p2 -> Bool
+cmp f a b = cmp' f a b /= 0
+
+(!==!), (!/=!), (!<=!), (!>=!), (!<!), (!>!)
+  :: (Precision p1, Precision p2)
+  => Rounded r p1 -> Rounded r p2 -> Bool
+(!==!) = cmp mpfr_equal_p
+(!/=!) = cmp mpfr_lessgreater_p
+(!<=!) = cmp mpfr_lessequal_p
+(!>=!) = cmp mpfr_greaterequal_p
+(!<!) = cmp mpfr_less_p
+(!>!) = cmp mpfr_greater_p
+
+infix 4 !==!, !/=!, !<=!, !>=!, !<!, !>!
+
+compare_ :: (Precision p1, Precision p2) => Rounded r p1 -> Rounded r p2 -> Ordering
+compare_ a b = compare (cmp' mpfr_cmp a b) 0
+
+instance Eq (Rounded r p) where
+  (==) = cmp mpfr_equal_p
+  (/=) = cmp mpfr_lessgreater_p
+
+instance Rounding r => Ord (Rounded r p) where
+  compare a b = compare (cmp' mpfr_cmp a b) 0
+  (<=) = cmp mpfr_lessequal_p
+  (>=) = cmp mpfr_greaterequal_p
+  (<) = cmp mpfr_less_p
+  (>) = cmp mpfr_greater_p
+  min = binary' mpfr_min
+  max = binary' mpfr_max
+
+sgn :: (Rounding r, Precision p) => Rounded r p -> Ordering
+sgn x = compare (unsafePerformIO $ in_ x mpfr_sgn) 0
 
 instance (Rounding r, Precision p) => Num (Rounded r p) where
-  (+) = binary mpfrAdd#
-  (-) = binary mpfrSub#
-  (*) = binary mpfrMul#
-  negate = unary mpfrNeg#
-  fromInteger (S# i) = case mpfrFromInt# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) i of
-    (# s, e, l #) -> Rounded s e l
-  fromInteger (J# i xs) = case mpfrFromInteger# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) i xs of
-    (# s, e, l #) -> Rounded s e l
-  abs (Rounded s e l) = case I# s .&. complement prec_bit of
-    I# s' -> Rounded s' e l
-  signum (Rounded s e l) = case compare (fromIntegral sgn) (0 :: Int32) of
+  (+) = (.+.)
+  (-) = (.-.)
+  (*) = (.*.)
+  negate = negate'
+  fromInteger j = r where
+    r = unsafePerformIO $ do
+          if toInteger (minBound :: CIntMax) <= j && j <= toInteger (maxBound :: CIntMax)
+          then do
+            (Just x, _) <- out_ $ \jfr -> mpfr_set_sj jfr (fromInteger j :: CIntMax) (rnd r)
+            return x
+          else do
+            (Just x, _) <- withInInteger j $ \jz -> out_ $ \jfr -> mpfr_set_z jfr jz (rnd r)
+            return x
+  abs = abs'
+  signum x = case sgn x of
     LT -> -1
     EQ -> 0
     GT -> 1
-    where sgn = I# (mpfrSgn# s e l)
-
-foreign import prim "mpfr_cmm_init_si" mpfrFromInt#
-  :: CRounding# -> CPrecision# -> Int# -> (# CSignPrec#, CExp#, ByteArray# #)
-
-foreign import prim "mpfr_cmm_init_z" mpfrFromInteger#
-  :: CRounding# -> CPrecision# -> Int# -> ByteArray# -> (# CSignPrec#, CExp#, ByteArray# #)
-
-foreign import prim "mpfr_cmm_init_q" mpfrFromRational#
-  :: CRounding# -> CPrecision#
-  -> Int# -> ByteArray#
-  -> Int# -> ByteArray#
-  -> (# CSignPrec#, CExp#, ByteArray# #)
 
 instance (Rounding r, Precision p) => Fractional (Rounded r p) where
-  fromRational x = case x of
-    S# n# :% S# d# -> case int2Integer# n# of
-      (# ns#, nl# #) -> case int2Integer# d# of
-        (# ds#, dl# #) -> conv ns# nl# ds# dl#
-    J# ns# nl# :% S# d# -> case int2Integer# d# of
-      (# ds#, dl# #) -> conv ns# nl# ds# dl#
-    S# n# :% J# ds# dl# -> case int2Integer# n# of
-      (# ns#, nl# #) -> conv ns# nl# ds# dl#
-    J# ns# nl# :% J# ds# dl# -> conv ns# nl# ds# dl#
-    where
-    conv :: Int# -> ByteArray# -> Int# -> ByteArray# -> Rounded r p
-    conv ns# nl# ds# dl# =
-      case mpfrFromRational# (mode# (Proxy::Proxy r)) (prec# (Proxy::Proxy p)) ns# nl# ds# dl# of
-        (# s, e, l #) -> Rounded s e l
-
-  (/) = binary mpfrDiv#
-
-proxyRounding :: Rounded r p -> Proxy r
-proxyRounding _ = Proxy
-
-proxyPrecision :: Rounded r p -> Proxy p
-proxyPrecision _ = Proxy
+  fromRational q = r where -- TODO small integer optimisation
+    r = unsafePerformIO $ do
+          (Just x, _) <- withInRational q $ \qq -> out_ $ \qfr -> mpfr_set_q qfr qq (rnd r)
+          return x
+  (/) = (!/!)
 
 -- | Construct a properly rounded floating point number from an 'Int'.
-
--- TODO: shouldn't this take a rounding, too? It's conceivable that an Int might exceed the requested
--- precision, which would require rounding.
 fromInt :: (Rounding r, Precision p) => Int -> Rounded r p
-fromInt (I# i) = r where
-  r = case mpfrFromInt# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) i of
-    (# s, e, l #) -> Rounded s e l
-
-foreign import prim "mpfr_cmm_init_d" mfpr_cmm_init_d
-  :: CRounding# -> CPrecision# -> Double# -> (# CSignPrec#, CExp#, ByteArray# #)
+fromInt i = r
+  where
+    r = unsafePerformIO $ do
+      (Just x, _) <- out_ $ \xfr -> mpfr_set_sj xfr (fromIntegral i) (rnd r)
+      return x
+-- TODO figure out correct syntax (if even possible) to allow RULE
+-- {-# RULES "fromIntegral/fromInt" fromIntegral = fromInt #-}
 
 -- | Construct a rounded floating point number directly from a 'Double'.
 fromDouble :: (Rounding r, Precision p) => Double -> Rounded r p
-fromDouble (D# d) = r where
-  r = case mfpr_cmm_init_d (mode# (proxyRounding r)) (prec# (proxyPrecision r)) d of
-    (# s, e, l #) -> Rounded s e l
+fromDouble d = r
+  where
+    r = unsafePerformIO $ do
+      (Just x, _) <- out_ $ \xfr -> mpfr_set_d xfr d (rnd r)
+      return x
+-- TODO figure out correct syntax (if even possible) to allow RULE
+-- {-# RULES "realToFrac/fromDouble" realToFrac = fromDouble #-}
 
--- N.B.: This (and the corresponding CMM) assumes that you want same precision as the
--- operand. Is this what we want? All the standard Haskell typeclasses are homogeneous
--- in the type, and since the precision is recorded in the type, this seems like a safe
--- assumption, but perhaps someone might want to ask for a higher precision for output?
-type Unary
-  = CRounding# ->
-    CSignPrec# -> CExp# -> ByteArray# ->
-    (# CSignPrec#, CExp#, ByteArray# #)
 
-foreign import prim "mpfr_cmm_neg"   mpfrNeg#     :: Unary
-foreign import prim "mpfr_cmm_log"   mpfrLog#     :: Unary
-foreign import prim "mpfr_cmm_exp"   mpfrExp#     :: Unary
-foreign import prim "mpfr_cmm_sqrt"  mpfrSqrt#    :: Unary
-foreign import prim "mpfr_cmm_sin"   mpfrSin#     :: Unary
-foreign import prim "mpfr_cmm_cos"   mpfrCos#     :: Unary
-foreign import prim "mpfr_cmm_tan"   mpfrTan#     :: Unary
-foreign import prim "mpfr_cmm_asin"  mpfrArcSin#  :: Unary
-foreign import prim "mpfr_cmm_acos"  mpfrArcCos#  :: Unary
-foreign import prim "mpfr_cmm_atan"  mpfrArcTan#  :: Unary
-foreign import prim "mpfr_cmm_sinh"  mpfrSinh#    :: Unary
-foreign import prim "mpfr_cmm_cosh"  mpfrCosh#    :: Unary
-foreign import prim "mpfr_cmm_tanh"  mpfrTanh#    :: Unary
-foreign import prim "mpfr_cmm_asinh" mpfrArcSinh# :: Unary
-foreign import prim "mpfr_cmm_acosh" mpfrArcCosh# :: Unary
-foreign import prim "mpfr_cmm_atanh" mpfrArcTanh# :: Unary
-
-unary :: Rounding r => Unary -> Rounded r p -> Rounded r p
-unary f (Rounded s e l) = r where
-  r = case f (mode# (proxyRounding r)) s e l of
-    (# s', e', l' #) -> Rounded s' e' l'
-{-# INLINE unary #-}
-
-type Inplace = CSignPrec# -> CExp# -> ByteArray# -> (# CSignPrec#, CExp#, ByteArray# #)
-
-foreign import prim "mpfr_cmm_nextabove" mpfrNextAbove# :: Inplace
-foreign import prim "mpfr_cmm_nextbelow" mpfrNextBelow# :: Inplace
-
-inplace :: Inplace -> Rounded r p -> Rounded r p
-inplace f (Rounded s e l) = case f s e l of
-  (# s', e', l' #) -> Rounded s' e' l'
-{-# INLINE inplace #-}
+inplace :: (Ptr MPFR -> IO ()) -> Rounded r p -> Rounded r p
+inplace f y = unsafePerformIO $ do
+  (Just x, _) <- out_' (roundedPrec y) $ \xfr -> in_ y $ \yfr -> do
+    _ <- mpfr_set xfr yfr (fromIntegral (fromEnum TowardNearest))
+    f xfr
+  return x
 
 succUlp, predUlp :: Rounded r p -> Rounded r p
-succUlp = inplace mpfrNextAbove#
-predUlp = inplace mpfrNextBelow#
-
-type Constant = CRounding# -> CPrecision# -> (# CSignPrec#, CExp#, ByteArray# #)
-
-foreign import prim "mpfr_cmm_const_pi"      mpfrConstPi#      :: Constant
+succUlp = inplace mpfr_nextabove
+predUlp = inplace mpfr_nextbelow
 
 constant :: (Rounding r, Precision p) => Constant -> Rounded r p
 constant k = r where
-  r = case k (mode# (proxyRounding r)) (prec# (proxyPrecision r)) of
-      (# s, e, l #) -> Rounded s e l
-{-# INLINE constant #-}
+  r = unsafePerformIO $ do
+    (Just x, _) <- out_ $ \xfr -> k xfr (rnd r)
+    return x
+
 
 instance (Rounding r, Precision p) => Floating (Rounded r p) where
-  pi    = constant mpfrConstPi#
-  exp   = unary mpfrExp#
-  sqrt  = unary mpfrSqrt#
-  log   = unary mpfrLog#
-  sin   = unary mpfrSin#
-  tan   = unary mpfrTan#
-  cos   = unary mpfrCos#
-  asin  = unary mpfrArcSin#
-  atan  = unary mpfrArcTan#
-  acos  = unary mpfrArcCos#
-  sinh  = unary mpfrSinh#
-  tanh  = unary mpfrTanh#
-  cosh  = unary mpfrCosh#
-  asinh = unary mpfrArcSinh#
-  atanh = unary mpfrArcTanh#
-  acosh = unary mpfrArcCosh#
+  pi    = kPi
+  exp   = exp_
+  sqrt  = sqrt_
+  log   = log_
+  sin   = sin_
+  tan   = tan_
+  cos   = cos_
+  asin  = asin_
+  atan  = atan_
+  acos  = acos_
+  sinh  = sinh_
+  tanh  = tanh_
+  cosh  = cosh_
+  asinh = asinh_
+  atanh = atanh_
+  acosh = acosh_
+#if MIN_VERSION_base(4,9,0)
+  log1p = log1p_
+  expm1 = expm1_
+#endif
 
-toRational' :: Rounded r p -> Rational
+toRational' :: Precision p => Rounded r p -> Rational
 toRational' r
    | e > 0     = fromIntegral (s `shiftL` e)
    | otherwise = s % (1 `shiftL` negate e)
@@ -326,66 +436,217 @@ toRational' r
 instance (Rounding r, Precision p) => Real (Rounded r p) where
   toRational = toRational'
 
+modf :: (Rounding r, Precision p) => Rounded r p -> (Rounded r p, Rounded r p)
+modf x = unsafePerformIO $ do
+  (Just y, (Just z, _)) <- in_ x $ \xfr ->
+    out_ $ \yfr ->
+      out_ $ \zfr ->
+        mpfr_modf yfr zfr xfr (rnd x)
+  return (y, z)
+
+toInteger' :: (Rounding r, Precision p) => Rounded r p -> Integer
+toInteger' x = unsafePerformIO $
+  withOutInteger_ $ \yz ->
+    in_ x $ \xfr ->
+      with 0 $ \flagsptr -> do
+        e <- wrapped_mpfr_get_z yz xfr (rnd x) flagsptr
+        flags <- peek flagsptr
+        case testBit flags erangeBit of
+          False -> return e
+          True -> throwIO Overflow
+
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
-  properFraction r = (i, fromRational f) where
-    (i, f) = properFraction (toRational r)
+  properFraction r = (fromInteger (toInteger' i), f) where
+    (i, f) = modf r
+  -- this round is from base-4.9.1.0, modified to use compare instead of signum
+  round x = let (n,r) = properFraction x
+                m     = if tst mpfr_signbit r then n - 1 else n + 1
+            in  case compare_ (abs r) (0.5 :: Rounded r 8) of
+                  LT -> n
+                  EQ -> if even n then n else m
+                  GT -> m
 
-foreign import prim "mpfr_cmm_get_z_2exp" mpfrDecode#
-  :: CSignPrec# -> CExp# -> ByteArray# -> (# CExp#, Int#, ByteArray# #)
-
-foreign import prim "mpfr_cmm_init_z_2exp" mpfrEncode#
-  :: CRounding# -> CPrecision# -> CExp# -> Int# -> ByteArray# -> (# CSignPrec#, CExp#, ByteArray# #)
-
-type Test = CSignPrec# -> CExp# -> ByteArray# -> Int#
-
-tst :: (CSignPrec# -> CExp# -> ByteArray# -> Int#) -> Rounded r p -> Bool
-tst f (Rounded s e l) = I# (f s e l) /= 0
-{-# INLINE tst #-}
-
-foreign import prim "mpfr_cmm_nan_p"  mpfrIsNaN#  :: Test
-foreign import prim "mpfr_cmm_inf_p"  mpfrIsInf#  :: Test
-foreign import prim "mpfr_cmm_zero_p" mpfrIsZero# :: Test
-foreign import prim "mpfr_cmm_atan2"  mpfrArcTan2# :: Binary
+tst :: (Precision p) => Test -> Rounded r p -> Bool
+tst f x = unsafePerformIO $ in_ x $ \xfr -> do
+  t <- f xfr
+  return (t /= 0)
 
 decodeFloat' :: Rounded r p -> (Integer, Int)
-decodeFloat' (Rounded sp e l) = case mpfrDecode# sp e l of (# i, s, d #) -> (J# s d, I# i)
+decodeFloat' x = case (unsafePerformIO $ do
+  in_ x $ \xfr -> withOutInteger $ \xz -> with 0 $ \flagsptr -> do
+    e <- wrapped_mpfr_get_z_2exp xz xfr flagsptr
+    flags <- peek flagsptr
+    case testBit flags erangeBit of
+      False -> return (fromIntegral e)
+      True -> throwIO Overflow) of
+  (0, _) -> (0, 0) -- mpfr_get_z_2exp returns emin instead of 0 for exponent
+  me -> me
+
+encodeFloat' :: (Rounding r, Precision p) => Integer -> Int -> Rounded r p
+encodeFloat' j e = r where
+  r = unsafePerformIO $ do
+        (Just x, _) <- withInInteger j $ \jz -> out_ $ \xfr -> mpfr_set_z_2exp xfr jz (fromIntegral e) (rnd r)
+        return x
 
 instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
   floatRadix  _ = 2
-  floatDigits _r = I# (prec# (Proxy::Proxy p))
+  floatDigits = self where
+    self _ = p
+    p = precision (0 `asTypeIn` self)
+    asTypeIn :: a -> (a -> b) -> a
+    asTypeIn = const
 
   -- FIXME: this should do for now, but the real ones can change...
   floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32))
 
   decodeFloat = decodeFloat'
-
-  -- FIXME: encodeFloat appears broken, but I haven't figured out how yet
-  encodeFloat (S# i)   (I# e) = r where
-    r = case int2Integer# i of
-          (# s, d #) -> case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of
-            (# s', e', l #) -> Rounded s' e' l
-  encodeFloat (J# s d) (I# e) = r where
-    r = case mpfrEncode# (mode# (proxyRounding r)) (prec# (proxyPrecision r)) e s d of
-          (# s', e', l #) -> Rounded s' e' l
-  isNaN = tst mpfrIsNaN#
-  isInfinite = tst mpfrIsInf#
+  encodeFloat = encodeFloat'
+  isNaN = tst mpfr_nan_p
+  isInfinite = tst mpfr_inf_p
   isDenormalized _ = False
-  isNegativeZero r@(Rounded s _ _) = tst mpfrIsZero# r && I# s .&. prec_bit /= 0
+  isNegativeZero r = tst mpfr_zero_p r && tst mpfr_signbit r
   isIEEE _ = True -- is this a lie? it mostly behaves like an IEEE float, despite being much bigger
-  atan2 = binary mpfrArcTan2#
+  atan2 = atan2_
 
-foreign import prim "mpfr_cmm_const_log2"    mpfrConstLog2#    :: Constant
-foreign import prim "mpfr_cmm_const_euler"   mpfrConstEuler#   :: Constant
-foreign import prim "mpfr_cmm_const_catalan" mpfrConstCatalan# :: Constant
+kPi :: (Rounding r, Precision p) => Rounded r p
+kPi = constant mpfr_const_pi
 
 -- | Natural logarithm of 2
 kLog2 :: (Rounding r, Precision p) => Rounded r p
-kLog2 = constant mpfrConstLog2#
+kLog2 = constant mpfr_const_log2
 
 -- | 0.577...
 kEuler :: (Rounding r, Precision p) => Rounded r p
-kEuler = constant mpfrConstEuler#
+kEuler = constant mpfr_const_euler
 
 -- | 0.915...
 kCatalan :: (Rounding r, Precision p) => Rounded r p
-kCatalan = constant mpfrConstCatalan#
+kCatalan = constant mpfr_const_catalan
+
+
+in_' :: Rounded r p -> (MPFR -> IO a) -> IO a
+in_' (Rounded p s e l) f = withByteArray l $ \ptr _bytes -> f MPFR
+  { mpfrPrec = p
+  , mpfrSign = s
+  , mpfrExp = e
+  , mpfrD = ptr
+  }
+
+in_ :: Rounded r p -> (Ptr MPFR -> IO a) -> IO a
+in_ x f = in_' x $ \y -> with y f
+
+
+out_' :: MPFRPrec -> (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
+out_' p f = allocaBytes (precBytes p) $ \d -> with
+  MPFR{ mpfrPrec = p, mpfrSign = 0, mpfrExp = 0, mpfrD = d } $ \ptr -> do
+  a <- f ptr
+  MPFR{ mpfrPrec = p', mpfrSign = s', mpfrExp = e', mpfrD = d' } <- peek ptr
+  if p /= p' then return (Nothing, a) else
+    asByteArray d' (precBytes p') $ \l' -> return (Just (Rounded p' s' e' l'), a)
+
+out_ :: Precision p => (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
+out_ f = r where
+  r = out_' prec f
+  prec = fromIntegral (precision (t r))
+  t :: IO (Maybe t, a) -> t
+  t _ = undefined
+
+
+-- | Use a value as a /constant/ @mpfr_t@ (attempts to modify it may explode,
+--   changing the precision will explode).
+withInRounded :: Rounded r p -> (Ptr MPFR -> IO a) -> IO a
+withInRounded = in_
+
+-- | Allocates and initializes a new @mpfr_t@, if the precision matches after
+--   the action then it is peeked and returned.  Otherwise you get 'Nothing'.
+withOutRounded :: Precision p => (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
+withOutRounded f = r where
+  r = alloca $ \ptr -> bracket_ (mpfr_init2 ptr prec) (mpfr_clear ptr) $ do
+    a <- f ptr
+    MPFR{ mpfrPrec = prec', mpfrSign = s, mpfrExp = e, mpfrD = d } <- peek ptr
+    if prec /= prec'
+      then return (Nothing, a)
+      else asByteArray d (precBytes prec) $ \l ->
+        return (Just (Rounded prec s e l), a)
+  prec = fromIntegral (precision (t r))
+  t :: IO (Maybe b, a) -> b
+  t _ = undefined
+
+-- | Allocates and initializes a new @mpfr_t@, if the precision matches after
+--   the action then it is peeked and returned.  Otherwise you get 'Nothing'.
+--   The result of the action is ignored.
+withOutRounded_ :: Precision p => (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p))
+withOutRounded_ = fmap fst . withOutRounded
+
+-- | Like 'withOutRounded' but with the limbs allocated by GHC, which should be
+--   slightly faster.  However, it will crash if MPFR tries to reallocate the
+--   limbs, so the action must not try to change the precision or clear it, etc.
+unsafeWithOutRounded :: Precision p => (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
+unsafeWithOutRounded = out_
+
+-- | Like 'withOutRounded_' but with the limbs allocated by GHC, which should be
+--   slightly faster.  However, it will crash if MPFR tries to reallocate the
+--   limbs, so the action must not try to change the precision or clear it, etc.
+unsafeWithOutRounded_ :: Precision p => (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p))
+unsafeWithOutRounded_ = fmap fst . out_
+
+-- | Allocates and initializes a new @mpfr_t@ to the value.  If the precision matches after
+--   the action then it is peeked and returned.  Otherwise you get 'Nothing'.
+withInOutRounded :: Precision p => Rounded r p -> (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p), a)
+-- FIXME: optimize to reduce copying
+withInOutRounded i f =
+  withOutRounded $ \ofr ->
+    in_ i $ \ifr -> do
+      _ <- mpfr_set ofr ifr (fromIntegral (fromEnum TowardNearest))
+      f ofr
+
+-- | Allocates and initializes a new @mpfr_t@ to the value.  If the precision matches after
+--   the action then it is peeked and returned.  Otherwise you get 'Nothing'.  The result
+--   ot the action is ignored.
+withInOutRounded_ :: Precision p => Rounded r p -> (Ptr MPFR -> IO a) -> IO (Maybe (Rounded r p))
+withInOutRounded_ x = fmap fst . withInOutRounded x
+
+-- | Peek an @mpfr_t@ at its actual precision, reified.
+peekRounded :: Rounding r => Ptr MPFR -> (forall (p :: *) . Precision p => Rounded r p -> IO a) -> IO a
+peekRounded ptr f = do
+  MPFR{ mpfrPrec = p', mpfrSign = s', mpfrExp = e', mpfrD = d' } <- peek ptr
+  asByteArray d' (precBytes p') $ \l' -> reifyPrecision (fromIntegral p') (wrap f (Rounded p' s' e' l'))
+  where
+    wrap :: forall (p :: *) (r :: RoundingMode) (a :: *) . (Rounding r, Precision p) => (forall (q :: *) . Precision q => Rounded r q -> IO a) -> Rounded r p -> Proxy p -> IO a
+    wrap g r = \_proxy -> g r
+
+
+-- "The number of limbs in use is controlled by _mpfr_prec, namely ceil(_mpfr_prec/mp_bits_per_limb)."
+-- <http://www.mpfr.org/mpfr-current/mpfr.html#Internals>
+precBytes :: MPFRPrec -> Int
+precBytes prec = bytesPerLimb * ((fromIntegral prec + bitsPerLimb1) `div` bitsPerLimb)
+bytesPerLimb :: Int
+bytesPerLimb = sizeOf (undefined :: MPLimb)
+bitsPerLimb :: Int
+bitsPerLimb = bytesPerLimb * 8
+bitsPerLimb1 :: Int
+bitsPerLimb1 = bitsPerLimb - 1
+
+
+erangeBit :: Int
+erangeBit = 5 -- sync with cbits/wrappers.c
+
+rnd :: Rounding r => Rounded r p -> MPFRRnd
+rnd = fromIntegral . fromEnum . rounding . proxyRounding
+
+proxyRounding :: Rounded r p -> Proxy r
+proxyRounding _ = Proxy
+
+withByteArray :: ByteArray# -> (Ptr a -> Int -> IO r) -> IO r
+withByteArray ba# f = do
+  let bytes = I# (sizeofByteArray# ba#)
+  allocaBytes bytes $ \ptr@(Ptr addr#) -> do
+    IO (\s -> (# copyByteArrayToAddr# ba# 0# addr# (sizeofByteArray# ba#) s, () #))
+    f ptr bytes
+
+asByteArray :: Ptr a -> Int -> (ByteArray# -> IO r) -> IO r
+asByteArray (Ptr addr#) (I# bytes#) f = do
+  IO $ \s# -> case newByteArray# bytes# s# of
+    (# s'#, mba# #) ->
+      case unsafeFreezeByteArray# mba# (copyAddrToByteArray# addr# mba# 0# bytes# s'#) of
+        (# s''#, ba# #) -> case f ba# of IO r -> r s''#

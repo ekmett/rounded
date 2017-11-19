@@ -8,11 +8,11 @@ license-file:       LICENSE
 author:             Edward A. Kmett, Daniel G. Peebles
 maintainer:         Edward A. Kmett <ekmett@gmail.com>
 copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles
+                    Copyright (C) 2013-2017 Claude Heiland-Allen
 category:           Numeric, Math
-build-type:         Custom
+build-type:         Simple
 cabal-version:      >= 1.22
-tested-with:        GHC == 7.8.1, GHC == 7.8.4
-extra-source-files: cbits/mkMpfrDerivedConstants.c, cbits/alloc.c
+tested-with:        GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.1
 description:
     This package provides numeric instances for MPFR that use
     \"Implicit Configurations\" from
@@ -21,7 +21,7 @@ description:
     use reflection, explicit instances are provided for common precisions
     and for the built-in rounding modes.
     .
-    This package should link correctly on either MacOS X or Linux with GHC 7.8.1 or later.
+    This package should work correctly with GHC 7.10.1 or later.
     .
     >>> import Numeric.Rounded
     >>> :set -XDataKinds
@@ -36,23 +36,49 @@ library
   exposed-modules:
     Numeric.Rounded
     Numeric.Rounded.Interval
+    Numeric.Rounded.Simple
+    Numeric.MPFR.Types
+    Numeric.MPFR.Raw.Unsafe
 
   other-modules:
     Numeric.Rounded.Rounding
     Numeric.Rounded.Precision
 
   build-depends:
-    base             >= 4.7     && < 5,
+    base             >= 4.8     && < 5,
     ghc-prim,
-    integer-gmp      >= 0.2   && < 0.6,
-    parallel,
-    reflection       >= 1.1.6 && < 1.5,
-    singletons       >= 0.9.3 && < 0.11,
-    tagged           >= 0.4.4 && < 0.8,
-    template-haskell >= 2.4   && < 2.10
+    reflection       >= 2.1.2   && < 2.2,
+    singletons       >= 2.1     && < 2.4,
+    hgmp             >= 0.1.1   && < 0.2
 
-  ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields
-  c-sources:       cbits/mpfr-wrappers.cmm
-  include-dirs:    dist/include
+  ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
+  build-tools:     hsc2hs
+
+  extra-libraries: mpfr
 
   hs-source-dirs:  src
+  c-sources:       cbits/wrappers.c
+
+  default-language: Haskell2010
+  other-extensions:
+    CPP
+    DataKinds
+    DeriveDataTypeable
+    DeriveGeneric
+    EmptyDataDecls
+    FlexibleContexts
+    FlexibleInstances
+    ForeignFunctionInterface
+    GeneralizedNewtypeDeriving
+    KindSignatures
+    MagicHash
+    MultiParamTypeClasses
+    PolyKinds
+    Rank2Types
+    RankNTypes
+    RoleAnnotations
+    ScopedTypeVariables
+    TypeFamilies
+    TypeSynonymInstances
+    UnboxedTuples
+    UndecidableInstances

@@ -30,13 +30,13 @@ import Data.Data
 import Data.Singletons
 
 data RoundingMode
-  = TowardNearestWithTiesAwayFromZero
-  | TowardNearest
-  | TowardZero
-  | TowardInf
-  | TowardNegInf
-  | AwayFromZero
-  | Faithfully
+  = TowardNearestWithTiesAwayFromZero -- ^ currently unsupported placeholder
+  | TowardNearest -- ^ roundTiesToEven in IEEE 754-2008
+  | TowardZero    -- ^ roundTowardZero in IEEE 754-2008
+  | TowardInf     -- ^ roundTowardPositive in IEEE 754-2008
+  | TowardNegInf  -- ^ roundTowardNegative in IEEE 754-2008
+  | AwayFromZero  -- ^ round away from zero
+  | Faithfully    -- ^ currently unsupported placeholder
   deriving (Eq,Ord,Show,Read,Data,Typeable)
 
 class Rounding (r :: RoundingMode) where rounding :: Proxy r -> RoundingMode
@@ -71,11 +71,6 @@ instance Bounded RoundingMode where
   maxBound = Faithfully
 
 newtype instance Sing (m :: RoundingMode) = SRounding RoundingMode
-
-instance SingKind ('KProxy :: KProxy RoundingMode) where
-  type DemoteRep ('KProxy :: KProxy RoundingMode) = RoundingMode
-  fromSing (SRounding n) = n
-  toSing n = SomeSing (SRounding n)
 
 instance SingI TowardNearestWithTiesAwayFromZero where sing = SRounding TowardNearestWithTiesAwayFromZero
 instance SingI TowardNearest where sing = SRounding TowardNearest
