@@ -216,8 +216,8 @@ unary'' f a = unsafePerformIO $ do
 abs' :: Rounded r p -> Rounded r p
 abs' = unary'' mpfr_abs
 
-negate' :: Rounding r => Rounded r p -> Rounded r p
-negate' = unary' mpfr_neg
+negate' :: Rounded r p -> Rounded r p
+negate' = unary'' mpfr_neg
 
 (.-.), (.+.), (.*.) :: Rounding r => Rounded r p -> Rounded r p -> Rounded r p
 (.-.) = binary' mpfr_sub
