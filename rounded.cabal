@@ -1,8 +1,8 @@
 name:               rounded
 version:            0.1
 synopsis:           Correctly-rounded arbitrary-precision floating-point arithmetic
-homepage:           http://github.com/ekmett/rounded
-bug-reports:        http://github.com/ekmett/rounded/issues
+homepage:           https://github.com/ekmett/rounded
+bug-reports:        https://github.com/ekmett/rounded/issues
 license:            LGPL
 license-file:       LICENSE
 author:             Edward A. Kmett, Daniel G. Peebles, Claude Heiland-Allen
