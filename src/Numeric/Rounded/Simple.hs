@@ -2,17 +2,21 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RankNTypes #-}
 module Numeric.Rounded.Simple
-  ( Rounded()
+  (
+  -- * Floating point numbers
+    Rounded()
   , reifyRounded
   , simplify
-  , RoundingMode(..)
-  , Precision
-  , precision
-  -- * conversion
+  , fromInt
   , fromDouble
   , toDouble
   , toInteger'
   , precRound
+  -- * Precision
+  , Precision
+  , precision
+  -- * Rounding
+  , RoundingMode(..)
   -- * constants
   , kPi
   , kLog2
@@ -159,20 +163,20 @@ log1p_ = unary R.log1p_
 expm1_ = unary R.expm1_
 precRound = unary R.precRound
 
+fromInt :: RoundingMode -> Precision -> Int -> Rounded
+fromInt = fromX R.fromInt
+
 fromDouble :: RoundingMode -> Precision -> Double -> Rounded
-fromDouble r p d = R.reifyRounding r (\pr -> R.reifyPrecision p (\pp -> g pr pp (R.fromDouble d)))
-  where
-    g :: (R.Rounding r, R.Precision p) => proxy1 r -> proxy2 p -> R.Rounded r p -> Rounded
-    g _ _ x = simplify x
+fromDouble = fromX R.fromDouble
 
 fromInteger' :: RoundingMode -> Precision -> Integer -> Rounded
-fromInteger' r p n = R.reifyRounding r (\pr -> R.reifyPrecision p (\pp -> g pr pp (fromInteger n)))
-  where
-    g :: (R.Rounding r, R.Precision p) => proxy1 r -> proxy2 p -> R.Rounded r p -> Rounded
-    g _ _ x = simplify x
+fromInteger' = fromX fromInteger
 
 fromRational' :: RoundingMode -> Precision -> Rational -> Rounded
-fromRational' r p n = R.reifyRounding r (\pr -> R.reifyPrecision p (\pp -> g pr pp (fromRational n)))
+fromRational' = fromX fromRational
+
+fromX :: (forall r p . (R.Rounding r, R.Precision p) => x -> R.Rounded r p) -> RoundingMode -> Precision -> x -> Rounded
+fromX f r p x = R.reifyRounding r (\pr -> R.reifyPrecision p (\pp -> g pr pp (f x)))
   where
     g :: (R.Rounding r, R.Precision p) => proxy1 r -> proxy2 p -> R.Rounded r p -> Rounded
     g _ _ x = simplify x
@@ -205,7 +209,7 @@ unary' f r a = R.reifyRounding r (\pr -> reifyRounded a (\ra -> g pr f ra))
 unary'' :: (forall r p . (R.Rounding r, R.Precision p) => R.Rounded r p -> a) -> Rounded -> a
 unary'' f a = unary' f R.TowardNearest a
 
-toDouble = RoundingMode -> Rounded -> Double
+toDouble :: RoundingMode -> Rounded -> Double
 toDouble = unary' R.toDouble
 
 toInteger' :: RoundingMode -> Rounded -> Integer
