@@ -104,7 +104,7 @@ data Rounded = Rounded
   , _roundedLimbs :: !ByteArray#
   }
 
-precision :: Rounded -> Int
+precision :: Rounded -> Precision
 precision = fromIntegral . roundedPrec
 
 reifyRounded :: Rounded -> (forall p . R.Precision p => R.Rounded r p -> a) -> a
