@@ -1,9 +1,22 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RankNTypes #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Numeric.Rounded.Simple
+-- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
+--                (C) 2013-2017 Claude Heiland-Allen
+-- License     :  LGPL
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  experimental
+-- Portability :  non-portable
+--
+-- This module provides an interface without advanced type system features,
+-- that may be more convenient if the precision is changed often.
+----------------------------------------------------------------------------
 module Numeric.Rounded.Simple
   (
-  -- * Floating point numbers
+  -- * Floating point numbers with a specified rounding mode and precision
     Rounded()
   , reifyRounded
   , simplify
@@ -17,7 +30,7 @@ module Numeric.Rounded.Simple
   , precision
   -- * Rounding
   , RoundingMode(..)
-  -- * constants
+  -- * Useful Constants
   , kPi
   , kLog2
   , kEuler
@@ -40,9 +53,11 @@ module Numeric.Rounded.Simple
   -- * Real
   , toRational'
   -- * Floating
-  , log_
-  , exp_
   , sqrt_
+  , exp_
+  , expm1_
+  , log_
+  , log1p_
   , sin_
   , cos_
   , tan_
@@ -55,8 +70,6 @@ module Numeric.Rounded.Simple
   , asinh_
   , acosh_
   , atanh_
-  , log1p_
-  , expm1_
   -- * RealFloat
   , atan2_
   , floatRadix'
@@ -343,7 +356,7 @@ withInOutRounded i f =
 withInOutRounded_ :: Rounded -> (Ptr MPFR -> IO a) -> IO Rounded
 withInOutRounded_ x = fmap fst . withInOutRounded x
 
--- | Peek an @mpfr_t@ at its actual precision, reified.
+-- | Peek an @mpfr_t@ at its actual precision.
 peekRounded :: Ptr MPFR -> IO Rounded
 peekRounded ptr = R.peekRounded ptr f
   where
