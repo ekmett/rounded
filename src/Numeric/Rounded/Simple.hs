@@ -2,17 +2,18 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RankNTypes #-}
 module Numeric.Rounded.Simple
-  ( RoundingMode(..)
-  , Precision
-  , Rounded()
-  , precision
+  ( Rounded()
   , reifyRounded
   , simplify
+  , RoundingMode(..)
+  , Precision
+  , precision
   , Constant
   , Unary
   , Unary'
   , Binary
   -- * conversion
+  , fromDouble
   , toDouble
   , toInteger'
   , precRound
@@ -165,6 +166,12 @@ atanh_ = unary R.atanh_
 log1p_ = unary R.log1p_
 expm1_ = unary R.expm1_
 precRound = unary R.precRound
+
+fromDouble :: RoundingMode -> Precision -> Double -> Rounded
+fromDouble r p d = R.reifyRounding r (\pr -> R.reifyPrecision p (\pp -> g pr pp (R.fromDouble d)))
+  where
+    g :: (R.Rounding r, R.Precision p) => proxy1 r -> proxy2 p -> R.Rounded r p -> Rounded
+    g _ _ x = simplify x
 
 fromInteger' :: RoundingMode -> Precision -> Integer -> Rounded
 fromInteger' r p n = R.reifyRounding r (\pr -> R.reifyPrecision p (\pp -> g pr pp (fromInteger n)))
