@@ -431,6 +431,8 @@ modf x = unsafePerformIO $ do
         mpfr_modf yfr zfr xfr (rnd x)
   return (y, z)
 
+-- | Round to 'Integer' using the specified rounding mode.  Throws 'Overflow' if
+--   the result cannot be represented (for example, infinities or NaN).
 toInteger' :: (Rounding r, Precision p) => Rounded r p -> Integer
 toInteger' x = unsafePerformIO $
   withOutInteger_ $ \yz ->
