@@ -15,7 +15,7 @@
 -- Module      :  Numeric.Rounded.Precision
 -- Copyright   :  (C) 2012 Edward Kmett
 -- License     :  LGPL
--- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
 -- Portability :  non-portable
 --

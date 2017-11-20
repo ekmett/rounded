@@ -1,12 +1,12 @@
 name:               rounded
 version:            0.1
 synopsis:           Correctly-rounded arbitrary-precision floating-point arithmetic
-homepage:           http://github.com/ekmett/rounded
-bug-reports:        http://github.com/ekmett/rounded/issues
+homepage:           https://github.com/ekmett/rounded
+bug-reports:        https://github.com/ekmett/rounded/issues
 license:            LGPL
 license-file:       LICENSE
-author:             Edward A. Kmett, Daniel G. Peebles
-maintainer:         Edward A. Kmett <ekmett@gmail.com>
+author:             Edward A. Kmett, Daniel G. Peebles, Claude Heiland-Allen
+maintainer:         Claude Heiland-Allen <claude@mathr.co.uk>
 copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles
                     Copyright (C) 2013-2017 Claude Heiland-Allen
 category:           Numeric, Math
@@ -41,6 +41,7 @@ library
     Numeric.MPFR.Raw.Unsafe
 
   other-modules:
+    Numeric.Rounded.Internal
     Numeric.Rounded.Rounding
     Numeric.Rounded.Precision
 
@@ -51,7 +52,7 @@ library
     singletons       >= 2.1     && < 2.4,
     hgmp             >= 0.1.1   && < 0.2
 
-  ghc-options:     -Wall -O2 -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
+  ghc-options:     -Wall -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
   build-tools:     hsc2hs
 
   extra-libraries: mpfr

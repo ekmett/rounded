@@ -5,7 +5,7 @@
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
 --                (C) 2013-2017 Claude Heiland-Allen
 -- License     :  LGPL
--- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
 -- Portability :  non-portable
 --
@@ -75,6 +75,13 @@ foreign import ccall unsafe "mpfr_acosh" mpfr_acosh :: Unary
 foreign import ccall unsafe "mpfr_atanh" mpfr_atanh :: Unary
 foreign import ccall unsafe "mpfr_log1p" mpfr_log1p :: Unary
 foreign import ccall unsafe "mpfr_expm1" mpfr_expm1 :: Unary
+foreign import ccall unsafe "mpfr_rint" mpfr_rint :: Unary
+
+type Unary' = Ptr MPFR -> Ptr MPFR -> IO CInt
+
+foreign import ccall unsafe "mpfr_trunc" mpfr_trunc :: Unary'
+foreign import ccall unsafe "mpfr_ceil" mpfr_ceil :: Unary'
+foreign import ccall unsafe "mpfr_floor" mpfr_floor :: Unary'
 
 type Binary = Ptr MPFR -> Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
 

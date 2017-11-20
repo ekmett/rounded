@@ -1,6 +1,7 @@
 0.1
 -----
-* Improved compatibility with cabal sandboxes.
+* Bindings rewritten as a straight FFI binding without a patched `MPFR`.
+* Added `Simple` module.
 
 0.0.1
 -----
