@@ -41,6 +41,7 @@ library
     Numeric.MPFR.Raw.Unsafe
 
   other-modules:
+    Numeric.Rounded.Internal
     Numeric.Rounded.Rounding
     Numeric.Rounded.Precision
 

@@ -6,7 +6,6 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UnboxedTuples #-}
-{-# LANGUAGE RoleAnnotations #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Rounded
@@ -21,7 +20,7 @@
 module Numeric.Rounded
     (
     -- * Floating point numbers with a specified rounding mode and precision
-      Rounded(..)
+      Rounded()
     , fromInt
     , fromDouble
     , toDouble
@@ -129,19 +128,7 @@ import Numeric.MPFR.Raw.Unsafe
 
 import Numeric.Rounded.Precision
 import Numeric.Rounded.Rounding
-
-
-type role Rounded phantom nominal
-
--- | A properly rounded floating-point number with a given rounding mode and precision.
---
--- You can 'Data.Coerce.coerce' to change rounding modes, but not precision.
-data Rounded (r :: RoundingMode) p = Rounded
-  { roundedPrec  :: !MPFRPrec
-  , roundedSign  :: !MPFRSign
-  , roundedExp   :: !MPFRExp
-  , roundedLimbs :: !ByteArray#
-  }
+import Numeric.Rounded.Internal
 
 -- | Round to 'Double' with the given rounding mode.
 toDouble :: (Rounding r, Precision p) => Rounded r p -> Double
