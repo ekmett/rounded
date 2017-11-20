@@ -52,6 +52,12 @@ module Numeric.Rounded.Simple
   , fromRational'
   -- * Real
   , toRational'
+  -- * RealFrac
+  , properFraction_
+  , truncate_
+  , round_
+  , ceiling_
+  , floor_
   -- * Floating
   , sqrt_
   , exp_
@@ -277,15 +283,19 @@ isNegativeZero' = unary'' isNegativeZero
 isIEEE' :: Rounded -> Bool
 isIEEE' = unary'' isIEEE
 
-{-
--- RealFrac -- FIXME TODO
-  properFraction :: Integral b => a -> (b, a)
-  truncate :: Integral b => a -> b
-  round :: Integral b => a -> b
-  ceiling :: Integral b => a -> b
-  floor :: Integral b => a -> b
-  modf
--}
+-- RealFrac
+
+properFraction_ :: Integral i => Rounded -> (i, Rounded)
+properFraction_ a = reifyRounded a g
+  where
+    g :: (Integral j, R.Precision p) => R.Rounded R.TowardNearest p -> (j, Rounded)
+    g ra = case properFraction ra of (i, b) -> (i, simplify b)
+
+truncate_, ceiling_, floor_, round_ :: Precision -> Rounded -> Rounded
+truncate_ = unary R.truncate_ TowardNearest
+round_ = unary R.round_ TowardNearest
+ceiling_ = unary R.ceiling_ TowardNearest
+floor_ = unary R.floor_ TowardNearest
 
 type Comparison = Rounded -> Rounded -> Bool
 

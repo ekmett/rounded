@@ -23,6 +23,7 @@ module Numeric.Rounded.Internal where
 
 import Control.Exception (bracket, bracket_, throwIO, ArithException(Overflow))
 import Data.Bits (shiftL, testBit)
+import Data.Coerce (coerce)
 import Data.Int (Int32)
 import Data.Proxy (Proxy(..))
 import Data.Ratio ((%))
@@ -385,15 +386,25 @@ toInteger' x = unsafePerformIO $
           True -> throwIO Overflow
 
 instance (Rounding r, Precision p) => RealFrac (Rounded r p) where
-  properFraction r = (fromInteger (toInteger' i), f) where
-    (i, f) = modf r
-  -- this round is from base-4.9.1.0, modified to use compare instead of signum
-  round x = let (n,r) = properFraction x
-                m     = if tst mpfr_signbit r then n - 1 else n + 1
-            in  case compare_ (abs r) (0.5 :: Rounded r 8) of
-                  LT -> n
-                  EQ -> if even n then n else m
-                  GT -> m
+  properFraction r = (fromInteger (toInteger' i), f) where (i, f) = modf r
+  truncate = roundFunc truncate_
+  round    = roundFunc round_
+  ceiling  = roundFunc ceiling_
+  floor    = roundFunc floor_
+
+roundFunc :: (Integral i, Precision p) => (Rounded TowardNearest p -> Rounded TowardNearest p) -> Rounded r p -> i
+roundFunc f = fromInteger . toInteger' . f . coerce
+
+unary_ :: (Precision p1, Precision p2) => (Ptr MPFR -> Ptr MPFR -> IO CInt) -> Rounded r p1 -> Rounded r p2
+unary_ f x = unsafePerformIO $ do
+  Just y <- withInRounded x $ \xp -> withOutRounded_ $ \yp -> f yp xp
+  return y
+
+truncate_, ceiling_, floor_, round_ :: (Precision p1, Precision p2) => Rounded r p1 -> Rounded r p2
+truncate_ = unary_ mpfr_trunc
+ceiling_  = unary_ mpfr_ceil
+floor_    = unary_ mpfr_floor
+round_    = unary_ (\yp xp -> mpfr_rint yp xp (fromIntegral (fromEnum TowardNearest)))
 
 tst :: (Precision p) => Test -> Rounded r p -> Bool
 tst f x = unsafePerformIO $ in_ x $ \xfr -> do

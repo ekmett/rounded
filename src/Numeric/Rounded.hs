@@ -73,6 +73,10 @@ module Numeric.Rounded
     , asinh_
     , acosh_
     , atanh_
+    , truncate_
+    , round_
+    , ceiling_
+    , floor_
     -- * Foreign Function Interface
     , withInRounded
     , withInOutRounded
