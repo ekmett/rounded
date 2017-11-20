@@ -5,8 +5,8 @@ homepage:           http://github.com/ekmett/rounded
 bug-reports:        http://github.com/ekmett/rounded/issues
 license:            LGPL
 license-file:       LICENSE
-author:             Edward A. Kmett, Daniel G. Peebles
-maintainer:         Edward A. Kmett <ekmett@gmail.com>
+author:             Edward A. Kmett, Daniel G. Peebles, Claude Heiland-Allen
+maintainer:         Claude Heiland-Allen <claude@mathr.co.uk>
 copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles
                     Copyright (C) 2013-2017 Claude Heiland-Allen
 category:           Numeric, Math
