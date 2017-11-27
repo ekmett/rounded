@@ -2,6 +2,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 import Numeric.Rounded
 import Data.Proxy
+
+pf :: RealFrac a => a -> (Integer, a)
+pf = properFraction
+
 main = do
   print (exp pi :: Rounded TowardZero 512)
   print (pi :: Rounded TowardZero Double)
@@ -13,3 +17,21 @@ main = do
   print (fromInt 100000000 :: Rounded TowardNearest Float)
   print (fromInt 123456789 :: Rounded TowardNearest Float)
   print (realToFrac (pi :: Rounded TowardNearest 512) :: Double)
+  print . pf $ (-2.5 :: Rational)
+  print . pf $ (-1.5 :: Rational)
+  print . pf $ (-0.5 :: Rational)
+  print . pf $ ( 0.5 :: Rational)
+  print . pf $ ( 1.5 :: Rational)
+  print . pf $ ( 2.5 :: Rational)
+  print . pf $ (-2.5 :: Rounded TowardNearest Float)
+  print . pf $ (-1.5 :: Rounded TowardNearest Float)
+  print . pf $ (-0.5 :: Rounded TowardNearest Float)
+  print . pf $ ( 0.5 :: Rounded TowardNearest Float)
+  print . pf $ ( 1.5 :: Rounded TowardNearest Float)
+  print . pf $ ( 2.5 :: Rounded TowardNearest Float)
+  print . pf $ (-(2^23 + 0.5) :: Rounded TowardNearest Float)
+  print . pf $ (-(2^22 + 0.5) :: Rounded TowardNearest Float)
+  print . pf $ (-(2^21 + 0.5) :: Rounded TowardNearest Float)
+  print . pf $ ( (2^21 + 0.5) :: Rounded TowardNearest Float)
+  print . pf $ ( (2^22 + 0.5) :: Rounded TowardNearest Float)
+  print . pf $ ( (2^23 + 0.5) :: Rounded TowardNearest Float)
