@@ -34,6 +34,11 @@ source-repository head
   type: git
   location: git://github.com/ekmett/rounded.git
 
+source-repository this
+  type: git
+  location: git://github.com/ekmett/rounded.git
+  tag: rounded-0.1
+
 library
   exposed-modules:
     Numeric.Rounded
