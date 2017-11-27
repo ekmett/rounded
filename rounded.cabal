@@ -7,7 +7,7 @@ license:            LGPL
 license-file:       LICENSE
 author:             Edward A. Kmett, Daniel G. Peebles, Claude Heiland-Allen
 maintainer:         Claude Heiland-Allen <claude@mathr.co.uk>
-copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles
+copyright:          Copyright (C) 2012-2014 Edward A. Kmett, Daniel G. Peebles;
                     Copyright (C) 2013-2017 Claude Heiland-Allen
 category:           Numeric, Math
 build-type:         Simple
