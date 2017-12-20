@@ -45,6 +45,8 @@ library
     Numeric.Rounded.Interval
     Numeric.Rounded.Simple
     Numeric.MPFR.Types
+    Numeric.MPFR.Raw
+    Numeric.MPFR.Raw.Safe
     Numeric.MPFR.Raw.Unsafe
 
   other-modules:

@@ -109,7 +109,7 @@ import Foreign (Ptr(..), alloca)
 import GHC.Prim ( ByteArray# )
 
 import Numeric.MPFR.Types
-import Numeric.MPFR.Raw.Unsafe (mpfr_init2, mpfr_clear, mpfr_set)
+import Numeric.MPFR.Raw (mpfr_init2, mpfr_clear, mpfr_set)
 import qualified Numeric.Rounded as R
 import qualified Numeric.Rounded.Internal as R
 import Numeric.Rounded.Rounding

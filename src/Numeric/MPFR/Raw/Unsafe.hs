@@ -10,12 +10,6 @@
 -- Portability :  non-portable
 --
 -- This module contains FFI imports as unsafe ccalls.
---
--- Note: beware issues with the GHC threaded runtime if you need the MPFR
--- status flags (which use OS thread local storage aka TLS).  Even if you use
--- 'Control.Concurrent.forkOS' to create a bound thread whose FFI will all be
--- done by the same OS thread, sparks created with 'Control.Parallel.par'
--- may run on a different OS thread and lead to unpredictable behaviour.
 ----------------------------------------------------------------------------
 module Numeric.MPFR.Raw.Unsafe where
 

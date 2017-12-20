@@ -54,7 +54,7 @@ import Numeric.GMP.Utils (withInInteger, withOutInteger, withOutInteger_, withIn
 import Numeric.GMP.Types (MPLimb)
 
 import Numeric.MPFR.Types
-import Numeric.MPFR.Raw.Unsafe
+import Numeric.MPFR.Raw
 
 import Numeric.Rounded.Precision
 import Numeric.Rounded.Rounding
