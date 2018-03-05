@@ -64,7 +64,7 @@ library
   ghc-options:     -Wall -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
   build-tools:     hsc2hs
 
-  extra-libraries: mpfr
+  extra-libraries: mpfr gmp
 
   hs-source-dirs:  src
   c-sources:       cbits/wrappers.c
