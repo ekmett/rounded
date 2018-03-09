@@ -55,10 +55,10 @@ library
     Numeric.Rounded.Precision
 
   build-depends:
-    base             >= 4.8     && < 4.11,
+    base             >= 4.8     && < 4.12,
     ghc-prim         >= 0.4     && < 0.6,
     reflection       >= 2.1.2   && < 2.2,
-    singletons       >= 2.1     && < 2.4,
+    singletons       >= 2.1     && < 2.5,
     hgmp             >= 0.1.1   && < 0.2
 
   ghc-options:     -Wall -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
