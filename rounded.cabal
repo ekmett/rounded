@@ -92,3 +92,14 @@ library
     TypeSynonymInstances
     UnboxedTuples
     UndecidableInstances
+
+test-suite rounded-test
+  type: exitcode-stdio-1.0
+  main-is: test.hs
+  build-depends:
+    base,
+    rounded
+  default-language: Haskell2010
+  other-extensions:
+    DataKinds
+    ScopedTypeVariables
