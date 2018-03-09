@@ -29,6 +29,8 @@ module Numeric.Rounded.Rounding
 import Data.Data
 import Data.Singletons
 
+import Numeric.MPFR.Types
+
 data RoundingMode
   = TowardNearestWithTiesAwayFromZero -- ^ currently unsupported placeholder
   | TowardNearest -- ^ roundTiesToEven in IEEE 754-2008
@@ -49,22 +51,22 @@ instance Rounding Faithfully    where rounding _ = Faithfully
 instance Rounding TowardNearestWithTiesAwayFromZero where rounding _ = TowardNearestWithTiesAwayFromZero
 
 instance Enum RoundingMode where
-  toEnum (-1) = TowardNearestWithTiesAwayFromZero
-  toEnum 0 = TowardNearest
-  toEnum 1 = TowardZero
-  toEnum 2 = TowardInf
-  toEnum 3 = TowardNegInf
-  toEnum 4 = AwayFromZero
-  toEnum 5 = Faithfully
+  toEnum MPFR_RNDNA = TowardNearestWithTiesAwayFromZero
+  toEnum MPFR_RNDN = TowardNearest
+  toEnum MPFR_RNDZ = TowardZero
+  toEnum MPFR_RNDU = TowardInf
+  toEnum MPFR_RNDD = TowardNegInf
+  toEnum MPFR_RNDA = AwayFromZero
+  toEnum MPFR_RNDF = Faithfully
   toEnum _ = error "out of range"
 
-  fromEnum TowardNearestWithTiesAwayFromZero = -1
-  fromEnum TowardNearest = 0
-  fromEnum TowardZero = 1
-  fromEnum TowardInf = 2
-  fromEnum TowardNegInf = 3
-  fromEnum AwayFromZero = 4
-  fromEnum Faithfully = 5
+  fromEnum TowardNearestWithTiesAwayFromZero = MPFR_RNDNA
+  fromEnum TowardNearest = MPFR_RNDN
+  fromEnum TowardZero = MPFR_RNDZ
+  fromEnum TowardInf = MPFR_RNDU
+  fromEnum TowardNegInf = MPFR_RNDD
+  fromEnum AwayFromZero = MPFR_RNDA
+  fromEnum Faithfully = MPFR_RNDF
 
 instance Bounded RoundingMode where
   minBound = TowardNearestWithTiesAwayFromZero

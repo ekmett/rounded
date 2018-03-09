@@ -83,6 +83,7 @@ library
     KindSignatures
     MagicHash
     MultiParamTypeClasses
+    PatternSynonyms
     PolyKinds
     Rank2Types
     RankNTypes

@@ -12,7 +12,7 @@
 -- |
 -- Module      :  Numeric.Rounded.Internal
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
---                (C) 2013-2017 Claude Heiland-Allen
+--                (C) 2013-2018 Claude Heiland-Allen
 -- License     :  LGPL
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
@@ -437,7 +437,8 @@ instance (Rounding r, Precision p) => RealFloat (Rounded r p) where
     asTypeIn = const
 
   -- FIXME: this should do for now, but the real ones can change...
-  floatRange _ = (fromIntegral (minBound :: Int32), fromIntegral (maxBound :: Int32))
+  -- FIXME: do these need to be offset to match Haskell conventions?
+  floatRange _ = (MPFR_EMIN_DEFAULT, MPFR_EMAX_DEFAULT)
 
   decodeFloat = decodeFloat'
   encodeFloat = encodeFloat'

@@ -31,6 +31,8 @@ import Data.Reflection
 import Foreign.C.Types
 import GHC.TypeLits
 
+import Numeric.MPFR.Types
+
 -- | This class is used to specify the number of bits of precision that are maintained in the
 -- significand of a properly 'Numeric.Rounded.Rounded' floating point number.
 class Precision p where
@@ -55,12 +57,12 @@ instance Precision CDouble where
   precision = floatPrecision
 
 instance KnownNat n => Precision (n :: Nat) where
-  precision p = max 2 $ fromInteger (natVal p)
+  precision p = max MPFR_PREC_MIN . min MPFR_PREC_MAX $ fromInteger (natVal p)
 
 data Bytes (n :: Nat)
 
 instance KnownNat n => Precision (Bytes n) where
-  precision _ = max 2 $ 8 * fromInteger (natVal (undefined :: Bytes n))
+  precision _ = max MPFR_PREC_MIN . min MPFR_PREC_MAX $ 8 * fromInteger (natVal (undefined :: Bytes n))
 
 data ReifiedPrecision (s :: *)
 
