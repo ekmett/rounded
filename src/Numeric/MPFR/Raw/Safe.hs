@@ -13,10 +13,11 @@
 ----------------------------------------------------------------------------
 module Numeric.MPFR.Raw.Safe where
 
-import Foreign.C (CInt(..), CIntMax(..), CSize(..), CChar(..))
+import Foreign.C (CInt(..), CIntMax(..), CSize(..), CChar(..), CLong(..))
 
 import GHC.Exts (Ptr)
 
+import Numeric.LongDouble (LongDouble)
 import Numeric.GMP.Types (MPZ, MPQ)
 
 import Numeric.MPFR.Types
@@ -108,3 +109,8 @@ foreign import ccall safe "mpfr_greaterequal_p" mpfr_greaterequal_p :: Compariso
 
 foreign import ccall safe "mpfr_nextabove" mpfr_nextabove :: Ptr MPFR -> IO ()
 foreign import ccall safe "mpfr_nextbelow" mpfr_nextbelow :: Ptr MPFR -> IO ()
+
+foreign import ccall safe "wrapped_mpfr_get_ld" wrapped_mpfr_get_ld :: Ptr LongDouble -> Ptr MPFR -> MPFRRnd -> Ptr CInt -> IO CInt
+foreign import ccall safe "wrapped_mpfr_get_ld_2exp" wrapped_mpfr_get_ld_2exp :: Ptr LongDouble -> Ptr CLong -> Ptr MPFR -> MPFRRnd -> Ptr CInt -> IO CInt
+foreign import ccall safe "wrapped_mpfr_set_ld" wrapped_mpfr_set_ld :: Ptr MPFR -> Ptr LongDouble -> MPFRRnd -> IO CInt
+foreign import ccall safe "wrapped_mpfr_cmp_ld" wrapped_mpfr_cmp_ld :: Ptr MPFR -> Ptr LongDouble -> IO CInt

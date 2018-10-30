@@ -5,6 +5,8 @@ import Control.Exception (catch, SomeException)
 import Data.Proxy (Proxy(..))
 import System.Exit (exitSuccess, exitFailure)
 
+import Numeric.LongDouble (LongDouble)
+
 import Numeric.Rounded
 
 filename :: String
@@ -51,4 +53,6 @@ test = unlines
   , show . pf $ ( (2^21 + 0.5) :: Rounded TowardNearest Float)
   , show . pf $ ( (2^22 + 0.5) :: Rounded TowardNearest Float)
   , show . pf $ ( (2^23 + 0.5) :: Rounded TowardNearest Float)
+  , show (fromLongDouble pi == (pi :: Rounded TowardNearest LongDouble))
+  , show (pi == toLongDouble (pi :: Rounded TowardNearest LongDouble))
   ]

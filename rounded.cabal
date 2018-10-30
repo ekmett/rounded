@@ -59,7 +59,8 @@ library
     ghc-prim         >= 0.4     && < 0.6,
     reflection       >= 2.1.2   && < 2.2,
     singletons       >= 2.1     && < 2.6,
-    hgmp             >= 0.1.1   && < 0.2
+    hgmp             >= 0.1.1   && < 0.2,
+    long-double      >= 0.1     && < 0.2
 
   ghc-options:     -Wall -fspec-constr -funbox-strict-fields -fno-warn-unticked-promoted-constructors
   build-tools:     hsc2hs
@@ -99,6 +100,7 @@ test-suite rounded-test
   main-is: test.hs
   build-depends:
     base,
+    long-double,
     rounded
   default-language: Haskell2010
   other-extensions:

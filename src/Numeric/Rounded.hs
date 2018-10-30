@@ -2,7 +2,7 @@
 -- |
 -- Module      :  Numeric.Rounded
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
---                (C) 2013-2017 Claude Heiland-Allen
+--                (C) 2013-2018 Claude Heiland-Allen
 -- License     :  LGPL
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
@@ -15,7 +15,9 @@ module Numeric.Rounded
       Rounded()
     , fromInt
     , fromDouble
+    , fromLongDouble
     , toDouble
+    , toLongDouble
     , toInteger'
     , precRound
     -- * Precision

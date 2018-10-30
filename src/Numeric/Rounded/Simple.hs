@@ -5,7 +5,7 @@
 -- |
 -- Module      :  Numeric.Rounded.Simple
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
---                (C) 2013-2017 Claude Heiland-Allen
+--                (C) 2013-2018 Claude Heiland-Allen
 -- License     :  LGPL
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
@@ -22,7 +22,9 @@ module Numeric.Rounded.Simple
   , simplify
   , fromInt
   , fromDouble
+  , fromLongDouble
   , toDouble
+  , toLongDouble
   , toInteger'
   , precRound
   -- * Precision
@@ -108,6 +110,8 @@ import Control.Exception (bracket_)
 import Foreign (Ptr(..), alloca)
 import GHC.Prim ( ByteArray# )
 
+import Numeric.LongDouble (LongDouble)
+
 import Numeric.MPFR.Types
 import Numeric.MPFR.Raw (mpfr_init2, mpfr_clear, mpfr_set)
 import qualified Numeric.Rounded as R
@@ -188,6 +192,9 @@ fromInt = fromX R.fromInt
 fromDouble :: RoundingMode -> Precision -> Double -> Rounded
 fromDouble = fromX R.fromDouble
 
+fromLongDouble :: RoundingMode -> Precision -> LongDouble -> Rounded
+fromLongDouble = fromX R.fromLongDouble
+
 fromInteger' :: RoundingMode -> Precision -> Integer -> Rounded
 fromInteger' = fromX fromInteger
 
@@ -230,6 +237,9 @@ unary'' f a = unary' f R.TowardNearest a
 
 toDouble :: RoundingMode -> Rounded -> Double
 toDouble = unary' R.toDouble
+
+toLongDouble :: RoundingMode -> Rounded -> LongDouble
+toLongDouble = unary' R.toLongDouble
 
 toInteger' :: RoundingMode -> Rounded -> Integer
 toInteger' = unary' R.toInteger'

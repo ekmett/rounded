@@ -40,3 +40,40 @@ mpfr_exp_t wrapped_mpfr_get_z_2exp(mpz_t rop, mpfr_t op, int *flags)
   set_flags(flags0);
   return retval;
 }
+
+int wrapped_mpfr_set_ld(mpfr_t rop, long double *op, mpfr_rnd_t rnd, int *flags)
+{
+  int flags0 = get_flags();
+  mpfr_clear_flags();
+  int retval = mpfr_set_ld(rop, *op, rnd);
+  *flags = get_flags();
+  set_flags(flags0);
+  return retval;
+}
+
+void wrapped_mpfr_get_ld(long double *rop, mpfr_t op, mpfr_rnd_t rnd, int *flags)
+{
+  int flags0 = get_flags();
+  mpfr_clear_flags();
+  *rop = mpfr_get_ld(op, rnd);
+  *flags = get_flags();
+  set_flags(flags0);
+}
+
+void wrapped_mpfr_get_ld_2exp(long double *rop, long *e, mpfr_t op, mpfr_rnd_t rnd, int *flags)
+{
+  int flags0 = get_flags();
+  mpfr_clear_flags();
+  *rop = mpfr_get_ld_2exp(e, op, rnd);
+  *flags = get_flags();
+  set_flags(flags0);
+}
+
+int wrapped_mpfr_cmp_ld(mpfr_t rop, long double *op)
+{
+  int flags0 = get_flags();
+  mpfr_clear_flags();
+  int retval = mpfr_cmp_ld(rop, *op);
+  set_flags(flags0);
+  return retval;
+}

@@ -31,6 +31,7 @@ import Data.Reflection
 import Foreign.C.Types
 import GHC.TypeLits
 
+import Numeric.LongDouble (LongDouble)
 import Numeric.MPFR.Types
 
 -- | This class is used to specify the number of bits of precision that are maintained in the
@@ -54,6 +55,9 @@ instance Precision Double where
   precision = floatPrecision
 
 instance Precision CDouble where
+  precision = floatPrecision
+
+instance Precision LongDouble where
   precision = floatPrecision
 
 instance KnownNat n => Precision (n :: Nat) where

@@ -31,6 +31,7 @@ import Data.Ratio ((%))
 import Foreign (with, alloca, allocaBytes, peek, sizeOf, nullPtr)
 import Foreign.C (CInt(..), CIntMax(..))
 import Foreign.C.String (peekCString)
+import Numeric.LongDouble (LongDouble)
 
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -76,6 +77,12 @@ toDouble :: (Rounding r, Precision p) => Rounded r p -> Double
 toDouble x = unsafePerformIO $ in_ x $ \xfr -> mpfr_get_d xfr (rnd x)
 -- this syntax is strange, but it seems to be the way it works...
 {-# RULES "realToFrac/toDouble" forall (x :: (Rounding r, Precision p) => Rounded r p) . realToFrac x = toDouble x #-}
+
+-- | Round to 'LongDouble' with the given rounding mode.
+toLongDouble :: (Rounding r, Precision p) => Rounded r p -> LongDouble
+toLongDouble x = unsafePerformIO $ in_ x $ \xfr -> with 0 $ \yfr -> with 0 $ \ffr -> wrapped_mpfr_get_ld yfr xfr (rnd x) ffr >> peek yfr
+-- this syntax is strange, but it seems to be the way it works...
+{-# RULES "realToFrac/toLongDouble" forall (x :: (Rounding r, Precision p) => Rounded r p) . realToFrac x = toLongDouble x #-}
 
 -- | Round to a different precision with the given rounding mode.
 precRound :: (Rounding r, Precision p1, Precision p2) => Rounded r p1 -> Rounded r p2
@@ -313,6 +320,16 @@ fromDouble d = r
       return x
 -- TODO figure out correct syntax (if even possible) to allow RULE
 -- {-# RULES "realToFrac/fromDouble" realToFrac = fromDouble #-}
+
+-- | Construct a rounded floating point number directly from a 'LongDouble'.
+fromLongDouble :: (Rounding r, Precision p) => LongDouble -> Rounded r p
+fromLongDouble d = r
+  where
+    r = unsafePerformIO $ do
+      (Just x, _) <- out_ $ \xfr -> with d $ \dp -> wrapped_mpfr_set_ld xfr dp (rnd r)
+      return x
+-- TODO figure out correct syntax (if even possible) to allow RULE
+-- {-# RULES "realToFrac/fromLongDouble" realToFrac = fromLongDouble #-}
 
 
 inplace :: (Ptr MPFR -> IO ()) -> Rounded r p -> Rounded r p
