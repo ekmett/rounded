@@ -15,3 +15,4 @@ libtool
 deps/mpfr-3.1.2/autom4te.cache/
 cabal.sandbox.config
 .cabal-sandbox
+dist-newstyle
