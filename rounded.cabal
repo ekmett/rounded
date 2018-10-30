@@ -28,7 +28,7 @@ description:
     >>> exp pi :: Rounded TowardZero 512
     23.140692632779269005729086367948547380266106242600211993445046409524342350690452783516971997067549219675952704801087773144428044414693835844717445879609842
 
-extra-source-files: README.markdown CHANGELOG.markdown test.hs
+extra-source-files: README.markdown CHANGELOG.markdown test.hs test.txt
 
 source-repository head
   type: git
