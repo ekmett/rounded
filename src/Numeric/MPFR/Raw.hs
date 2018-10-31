@@ -3,7 +3,7 @@
 -- Module      :  Numeric.MPFR.Raw
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
 --                (C) 2013-2017 Claude Heiland-Allen
--- License     :  LGPL
+-- License     :  BSD3
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
 -- Portability :  non-portable

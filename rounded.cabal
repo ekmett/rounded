@@ -3,7 +3,7 @@ version:            0.1
 synopsis:           Correctly-rounded arbitrary-precision floating-point arithmetic
 homepage:           https://github.com/ekmett/rounded
 bug-reports:        https://github.com/ekmett/rounded/issues
-license:            LGPL
+license:            BSD3
 license-file:       LICENSE
 author:             Edward A. Kmett, Daniel G. Peebles, Claude Heiland-Allen
 maintainer:         Claude Heiland-Allen <claude@mathr.co.uk>

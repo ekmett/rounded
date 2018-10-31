@@ -13,7 +13,7 @@
 -- |
 -- Module      :  Numeric.Rounded.Rounding
 -- Copyright   :  (C) 2012-2014 Edward Kmett
--- License     :  LGPL
+-- License     :  BSD3
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
 -- Portability :  non-portable

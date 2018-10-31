@@ -12,7 +12,7 @@
 -- |
 -- Module      :  Numeric.MPFR.Types
 -- Copyright   :  (C) 2015-2018 Claude Heiland-Allen
--- License     :  LGPL
+-- License     :  BSD3
 -- Stability   :  experimental
 -- Portability :  non-portable
 --
