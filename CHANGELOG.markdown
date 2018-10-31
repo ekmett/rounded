@@ -1,5 +1,9 @@
 # Revision history for rounded
 
+## 0.1.0.1 -- 2018-10-31
+
+* License changed from LGPL to BSD3.
+
 ## 0.1 -- 2018-10-30
 
 * Bindings rewritten as a straight FFI binding without a patched `MPFR`.
