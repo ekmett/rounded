@@ -1,8 +1,12 @@
 # Revision history for rounded
 
+## 1.0 -- 2019-08-28
+
+* Require MPFR 4.0 or above.
+
 ## 0.2 -- 2019-08-28
 
-* Wrapped a lot more of the MPFR API.
+* Wrapped a lot more of the MPFR 3.1 API.
 * Fixed `wrapped_mpfr_set_ld()` FFI binding.  Previously `fromLongDouble`
   could corrupt memory or crash due to missing argument.
 * Removed dependency on `singletons`.

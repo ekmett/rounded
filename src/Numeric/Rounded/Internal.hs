@@ -244,10 +244,7 @@ binary f a b = unsafePerformIO $ do
         f cfr afr bfr (rnd a)
   return c
 
-add_, agm_, atan2_, copysign_, dim_, div_, fmod_, hypot_, max_, min_, mul_, pow_, sub_,
-#ifdef HAVE_MPFR_4_0
-  beta_, gamma_inc_,
-#endif
+add_, agm_, atan2_, copysign_, dim_, div_, fmod_, hypot_, max_, min_, mul_, pow_, sub_, beta_, gamma_inc_,
  (!+!), (!-!), (!*!), (!/!), (!**!)
   :: (Rounding r, Precision p1, Precision p2, Precision p3)
   => Rounded r p1 -> Rounded r p2 -> Rounded r p3
@@ -264,10 +261,8 @@ min_ = binary mpfr_min
 mul_ = binary mpfr_mul
 pow_ = binary mpfr_pow
 sub_ = binary mpfr_sub
-#ifdef HAVE_MPFR_4_0
 beta_ = binary mpfr_beta
 gamma_inc_ = binary mpfr_gamma_inc
-#endif
 (!+!) = add_
 (!-!) = sub_
 (!*!) = mul_

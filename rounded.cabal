@@ -1,5 +1,5 @@
 name:               rounded
-version:            0.2
+version:            1.0
 synopsis:           Correctly-rounded arbitrary-precision floating-point arithmetic
 homepage:           https://github.com/ekmett/rounded
 bug-reports:        https://github.com/ekmett/rounded/issues
@@ -27,6 +27,8 @@ description:
     >>> :set -XDataKinds
     >>> exp pi :: Rounded TowardZero 512
     23.140692632779269005729086367948547380266106242600211993445046409524342350690452783516971997067549219675952704801087773144428044414693835844717445879609842
+    .
+    rounded version 1.x is for MPFR version 4.0 and above.
 
 extra-source-files: README.markdown CHANGELOG.markdown test.hs test.txt
 
@@ -37,12 +39,7 @@ source-repository head
 source-repository this
   type: git
   location: git://github.com/ekmett/rounded.git
-  tag: rounded-0.2
-
--- -- conditionally defined API is a bad thing
---flag mpfr40
---  description: use features new in MPFR 4.0.x
---  default: True
+  tag: rounded-1.0
 
 library
   exposed-modules:
@@ -70,10 +67,7 @@ library
   build-tools:     hsc2hs
 
   extra-libraries: mpfr gmp
-
-  --if flag(mpfr40)
-  --  pkgconfig-depends: mpfr >= 4.0.0
-  --  cpp-options: -DHAVE_MPFR_4_0
+  pkgconfig-depends: mpfr >= 4.0.0
 
   hs-source-dirs:  src
   c-sources:       cbits/wrappers.c

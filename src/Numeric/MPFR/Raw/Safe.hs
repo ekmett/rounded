@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 -----------------------------------------------------------------------------
 -- |
@@ -147,10 +146,8 @@ foreign import ccall safe "mpfr_mul" mpfr_mul :: Binary
 foreign import ccall safe "mpfr_pow" mpfr_pow :: Binary
 foreign import ccall safe "mpfr_sub" mpfr_sub :: Binary
 
-#ifdef HAVE_MPFR_4_0
 foreign import ccall safe "mpfr_beta" mpfr_beta :: Binary
 foreign import ccall safe "mpfr_gamma_inc" mpfr_gamma_inc :: Binary
-#endif
 
 type DualOutput = Ptr MPFR -> Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
 
