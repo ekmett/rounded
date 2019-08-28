@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RankNTypes #-}
@@ -142,10 +141,6 @@ module Numeric.Rounded.Simple
   , dim_
   , fmod_
   , hypot_
-#ifdef HAVE_MPFR_4_0
-  , beta_
-  , gamma_inc_
-#endif
   -- * Foreign Function Interface
   , withInRounded
   , withInOutRounded
@@ -296,11 +291,7 @@ binary f r pq a b = R.reifyRounding r (\pr -> R.reifyPrecision pq (\ppq -> reify
 binary' :: (forall r p q pq . (R.Rounding r, R.Precision p, R.Precision q, R.Precision pq) => R.Rounded r p -> R.Rounded r q -> R.Rounded r pq) -> Rounded -> Rounded -> Rounded
 binary' f a b = binary f R.TowardNearest (precision a `max` precision b) a b
 
-add_, agm_, atan2_, copysign_, dim_, div_, fmod_, hypot_, max_, min_, mul_, pow_,
-#ifdef HAVE_MPFR_4_0
-  beta_, gamma_inc_,
-#endif
-  sub_
+add_, agm_, atan2_, copysign_, dim_, div_, fmod_, hypot_, max_, min_, mul_, pow_, sub_
   :: RoundingMode -> Precision -> Rounded -> Rounded -> Rounded
 add_ = binary R.add_
 agm_ = binary R.agm_
@@ -315,10 +306,6 @@ min_ = binary R.min_
 mul_ = binary R.mul_
 pow_ = binary R.pow_
 sub_ = binary R.sub_
-#ifdef HAVE_MPFR_4_0
-beta_ = binary R.beta_
-gamma_inc_ = binary R.gamma_inc_
-#endif
 
 unary' :: (forall r p . (R.Rounding r, R.Precision p) => R.Rounded r p -> a) -> RoundingMode -> Rounded -> a
 unary' f r a = R.reifyRounding r (\pr -> reifyRounded a (\ra -> g pr f ra))
