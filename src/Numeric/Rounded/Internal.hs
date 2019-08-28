@@ -175,32 +175,64 @@ negate' = unary'' mpfr_neg
 infixl 6 .+., .-.
 infixl 7 .*.
 
-
-abs_, negate_, log_, exp_, sqrt_,
- sin_, cos_, tan_, asin_, acos_, atan_,
-   sinh_, cosh_, tanh_, asinh_, acosh_, atanh_,
-     log1p_, expm1_
+abs_, acos_, acosh_, ai_, asin_, asinh_, atan_, atanh_, cbrt_, cos_, cosh_, cot_, coth_, csc_, csch_, digamma_, eint_, erf_, erfc_, exp_, exp10_, exp2_, expm1_, frac_, gamma_, j0_, j1_, li2_, lngamma_, log_, log10_, log1p_, log2_, neg_, rec_sqrt_, rint_, rint_ceil_, rint_floor_, rint_round_, rint_roundeven_, rint_trunc_, sec_, sech_, set_, sin_, sinh_, sqr_, sqrt_, tan_, tanh_, y0_, y1_, zeta_,
+ negate_
   :: (Rounding r, Precision p1, Precision p2)
   => Rounded r p1 -> Rounded r p2
 abs_ = unary mpfr_abs
-negate_ = unary mpfr_neg
-log_ = unary mpfr_log
-exp_ = unary mpfr_exp
-sqrt_ = unary mpfr_sqrt
-sin_ = unary mpfr_sin
-cos_ = unary mpfr_cos
-tan_ = unary mpfr_tan
-asin_ = unary mpfr_asin
 acos_ = unary mpfr_acos
-atan_ = unary mpfr_atan
-sinh_ = unary mpfr_sinh
-cosh_ = unary mpfr_cosh
-tanh_ = unary mpfr_tanh
-asinh_ = unary mpfr_asinh
 acosh_ = unary mpfr_acosh
+ai_ = unary mpfr_ai
+asin_ = unary mpfr_asin
+asinh_ = unary mpfr_asinh
+atan_ = unary mpfr_atan
 atanh_ = unary mpfr_atanh
-log1p_ = unary mpfr_log1p
+cbrt_ = unary mpfr_cbrt
+cos_ = unary mpfr_cos
+cosh_ = unary mpfr_cosh
+cot_ = unary mpfr_cot
+coth_ = unary mpfr_coth
+csc_ = unary mpfr_csc
+csch_ = unary mpfr_csch
+digamma_ = unary mpfr_digamma
+eint_ = unary mpfr_eint
+erf_ = unary mpfr_erf
+erfc_ = unary mpfr_erfc
+exp_ = unary mpfr_exp
+exp10_ = unary mpfr_exp10
+exp2_ = unary mpfr_exp2
 expm1_ = unary mpfr_expm1
+frac_ = unary mpfr_frac
+gamma_ = unary mpfr_gamma
+j0_ = unary mpfr_j0
+j1_ = unary mpfr_j1
+li2_ = unary mpfr_li2
+lngamma_ = unary mpfr_lngamma
+log_ = unary mpfr_log
+log10_ = unary mpfr_log10
+log1p_ = unary mpfr_log1p
+log2_ = unary mpfr_log2
+neg_ = unary mpfr_neg
+rec_sqrt_ = unary mpfr_rec_sqrt
+rint_ = unary mpfr_rint
+rint_ceil_ = unary mpfr_rint_ceil
+rint_floor_ = unary mpfr_rint_floor
+rint_round_ = unary mpfr_rint_round
+rint_roundeven_ = unary mpfr_rint_roundeven
+rint_trunc_ = unary mpfr_rint_trunc
+sec_ = unary mpfr_sec
+sech_ = unary mpfr_sech
+set_ = unary mpfr_set
+sin_ = unary mpfr_sin
+sinh_ = unary mpfr_sinh
+sqr_ = unary mpfr_sqr
+sqrt_ = unary mpfr_sqrt
+tan_ = unary mpfr_tan
+tanh_ = unary mpfr_tanh
+y0_ = unary mpfr_y0
+y1_ = unary mpfr_y1
+zeta_ = unary mpfr_zeta
+negate_ = neg_
 
 binary
   :: (Rounding r, Precision p1, Precision p2, Precision p3)
@@ -212,19 +244,34 @@ binary f a b = unsafePerformIO $ do
         f cfr afr bfr (rnd a)
   return c
 
-min_, max_, (!+!), (!-!), (!*!), (!/!), atan2_
+add_, agm_, atan2_, beta_, copysign_, dim_, div_, fmod_, gamma_inc_, hypot_, max_, min_, mul_, pow_, sub_,
+ (!+!), (!-!), (!*!), (!/!), (!**!)
   :: (Rounding r, Precision p1, Precision p2, Precision p3)
   => Rounded r p1 -> Rounded r p2 -> Rounded r p3
-min_ = binary mpfr_min
-max_ = binary mpfr_max
-(!+!) = binary mpfr_add
-(!-!) = binary mpfr_sub
-(!*!) = binary mpfr_mul
-(!/!) = binary mpfr_div
+add_ = binary mpfr_add
+agm_ = binary mpfr_agm
 atan2_ = binary mpfr_atan2
+beta_ = binary mpfr_beta
+copysign_ = binary mpfr_copysign
+dim_ = binary mpfr_dim
+div_ = binary mpfr_div
+fmod_ = binary mpfr_fmod
+gamma_inc_ = binary mpfr_gamma_inc
+hypot_ = binary mpfr_hypot
+max_ = binary mpfr_max
+min_ = binary mpfr_min
+mul_ = binary mpfr_mul
+pow_ = binary mpfr_pow
+sub_ = binary mpfr_sub
+(!+!) = add_
+(!-!) = sub_
+(!*!) = mul_
+(!/!) = div_
+(!**!) = pow_
 
-infixl 6 !+!, !-!
-infixl 7 !*!, !/!
+infixl 6 !+!, !-!, `add_`, `sub_`
+infixl 7 !*!, !/!, `mul_`, `div_`
+infixr 8 !**!, `pow_`
 
 binary' :: Rounding r => Binary -> Rounded r p -> Rounded r p -> Rounded r p
 binary' f a b = unsafePerformIO $ do
@@ -243,7 +290,7 @@ cmp' f a b = unsafePerformIO $
 cmp :: Comparison -> Rounded r p1 -> Rounded r p2 -> Bool
 cmp f a b = cmp' f a b /= 0
 
-(!==!), (!/=!), (!<=!), (!>=!), (!<!), (!>!)
+(!==!), (!/=!), (!<=!), (!>=!), (!<!), (!>!), (!<>!)
   :: (Precision p1, Precision p2)
   => Rounded r p1 -> Rounded r p2 -> Bool
 (!==!) = cmp mpfr_equal_p
@@ -252,8 +299,9 @@ cmp f a b = cmp' f a b /= 0
 (!>=!) = cmp mpfr_greaterequal_p
 (!<!) = cmp mpfr_less_p
 (!>!) = cmp mpfr_greater_p
+(!<>!) = cmp mpfr_unordered_p
 
-infix 4 !==!, !/=!, !<=!, !>=!, !<!, !>!
+infix 4 !==!, !/=!, !<=!, !>=!, !<!, !>!, !<>!
 
 compare_ :: (Precision p1, Precision p2) => Rounded r p1 -> Rounded r p2 -> Ordering
 compare_ a b = compare (cmp' mpfr_cmp a b) 0
@@ -355,6 +403,7 @@ instance (Rounding r, Precision p) => Floating (Rounded r p) where
   exp   = exp_
   sqrt  = sqrt_
   log   = log_
+  (**)  = pow_
   sin   = sin_
   tan   = tan_
   cos   = cos_
@@ -381,12 +430,17 @@ toRational' r
 instance (Rounding r, Precision p) => Real (Rounded r p) where
   toRational = toRational'
 
-modf :: (Rounding r, Precision p) => Rounded r p -> (Rounded r p, Rounded r p)
-modf x = unsafePerformIO $ do
+modf, sin_cos, sinh_cosh :: (Rounding r, Precision p) => Rounded r p -> (Rounded r p, Rounded r p)
+modf = dualOutput mpfr_modf
+sin_cos = dualOutput mpfr_sin_cos
+sinh_cosh = dualOutput mpfr_sinh_cosh
+
+dualOutput :: (Rounding r, Precision p) => Binary -> Rounded r p -> (Rounded r p, Rounded r p)
+dualOutput f x = unsafePerformIO $ do
   (Just y, (Just z, _)) <- in_ x $ \xfr ->
     out_ $ \yfr ->
       out_ $ \zfr ->
-        mpfr_modf yfr zfr xfr (rnd x)
+        f yfr zfr xfr (rnd x)
   return (y, z)
 
 -- | Round to 'Integer' using the specified rounding mode.  Throws 'Overflow' if

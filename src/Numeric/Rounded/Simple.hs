@@ -5,7 +5,7 @@
 -- |
 -- Module      :  Numeric.Rounded.Simple
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
---                (C) 2013-2018 Claude Heiland-Allen
+--                (C) 2013-2019 Claude Heiland-Allen
 -- License     :  BSD3
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
@@ -62,6 +62,7 @@ module Numeric.Rounded.Simple
   , floor_
   -- * Floating
   , sqrt_
+  , pow_
   , exp_
   , expm1_
   , log_
@@ -97,6 +98,51 @@ module Numeric.Rounded.Simple
   , show'
   -- * Read
   , read'
+  -- * Other operations
+  -- ** Unary operation
+  , ai_
+  , cbrt_
+  , cot_
+  , coth_
+  , csc_
+  , csch_
+  , digamma_
+  , eint_
+  , erf_
+  , erfc_
+  , exp10_
+  , exp2_
+  , frac_
+  , gamma_
+  , j0_
+  , j1_
+  , li2_
+  , lngamma_
+  , log10_
+  , log2_
+  , neg_
+  , rec_sqrt_
+  , rint_
+  , rint_ceil_
+  , rint_floor_
+  , rint_round_
+  , rint_roundeven_
+  , rint_trunc_
+  , sec_
+  , sech_
+  , set_
+  , sqr_
+  , y0_
+  , y1_
+  , zeta_
+  -- ** Binary operations
+  , agm_
+  , beta_
+  , copysign_
+  , dim_
+  , fmod_
+  , gamma_inc_
+  , hypot_
   -- * Foreign Function Interface
   , withInRounded
   , withInOutRounded
@@ -159,32 +205,63 @@ unary f r q a = R.reifyRounding r (\pr -> R.reifyPrecision q (\pq -> reifyRounde
     g :: (R.Rounding r, R.Precision p, R.Precision q) => proxy1 r -> proxy2 q -> (R.Rounded r p -> R.Rounded r q) -> R.Rounded r p -> Rounded
     g _ _ h b = simplify (h b)
 
-abs_, negate_, log_, exp_, sqrt_,
- sin_, cos_, tan_, asin_, acos_, atan_,
-  sinh_, cosh_, tanh_, asinh_, acosh_, atanh_,
-   log1p_, expm1_,
-     precRound :: RoundingMode -> Precision -> Rounded -> Rounded
-
+abs_, acos_, acosh_, ai_, asin_, asinh_, atan_, atanh_, cbrt_, cos_, cosh_, cot_, coth_, csc_, csch_, digamma_, eint_, erf_, erfc_, exp_, exp10_, exp2_, expm1_, frac_, gamma_, j0_, j1_, li2_, lngamma_, log_, log10_, log1p_, log2_, neg_, rec_sqrt_, rint_, rint_ceil_, rint_floor_, rint_round_, rint_roundeven_, rint_trunc_, sec_, sech_, set_, sin_, sinh_, sqr_, sqrt_, tan_, tanh_, y0_, y1_, zeta_, precRound, negate_
+  :: RoundingMode -> Precision -> Rounded -> Rounded
 abs_ = unary R.abs_
-negate_ = unary R.negate_
-log_ = unary R.log_
-exp_ = unary R.exp_
-sqrt_ = unary R.sqrt_
-sin_ = unary R.sin_
-cos_ = unary R.cos_
-tan_ = unary R.tan_
-asin_ = unary R.asin_
 acos_ = unary R.acos_
-atan_ = unary R.atan_
-sinh_ = unary R.sinh_
-cosh_ = unary R.cosh_
-tanh_ = unary R.tanh_
-asinh_ = unary R.asinh_
 acosh_ = unary R.acosh_
+ai_ = unary R.ai_
+asin_ = unary R.asin_
+asinh_ = unary R.asinh_
+atan_ = unary R.atan_
 atanh_ = unary R.atanh_
-log1p_ = unary R.log1p_
+cbrt_ = unary R.cbrt_
+cos_ = unary R.cos_
+cosh_ = unary R.cosh_
+cot_ = unary R.cot_
+coth_ = unary R.coth_
+csc_ = unary R.csc_
+csch_ = unary R.csch_
+digamma_ = unary R.digamma_
+eint_ = unary R.eint_
+erf_ = unary R.erf_
+erfc_ = unary R.erfc_
+exp_ = unary R.exp_
+exp10_ = unary R.exp10_
+exp2_ = unary R.exp2_
 expm1_ = unary R.expm1_
+frac_ = unary R.frac_
+gamma_ = unary R.gamma_
+j0_ = unary R.j0_
+j1_ = unary R.j1_
+li2_ = unary R.li2_
+lngamma_ = unary R.lngamma_
+log_ = unary R.log_
+log10_ = unary R.log10_
+log1p_ = unary R.log1p_
+log2_ = unary R.log2_
+neg_ = unary R.neg_
+rec_sqrt_ = unary R.rec_sqrt_
+rint_ = unary R.rint_
+rint_ceil_ = unary R.rint_ceil_
+rint_floor_ = unary R.rint_floor_
+rint_round_ = unary R.rint_round_
+rint_roundeven_ = unary R.rint_roundeven_
+rint_trunc_ = unary R.rint_trunc_
+sec_ = unary R.sec_
+sech_ = unary R.sech_
+set_ = unary R.set_
+sin_ = unary R.sin_
+sinh_ = unary R.sinh_
+sqr_ = unary R.sqr_
+sqrt_ = unary R.sqrt_
+tan_ = unary R.tan_
+tanh_ = unary R.tanh_
+y0_ = unary R.y0_
+y1_ = unary R.y1_
+zeta_ = unary R.zeta_
 precRound = unary R.precRound
+negate_ = neg_
 
 fromInt :: RoundingMode -> Precision -> Int -> Rounded
 fromInt = fromX R.fromInt
@@ -216,15 +293,23 @@ binary f r pq a b = R.reifyRounding r (\pr -> R.reifyPrecision pq (\ppq -> reify
 binary' :: (forall r p q pq . (R.Rounding r, R.Precision p, R.Precision q, R.Precision pq) => R.Rounded r p -> R.Rounded r q -> R.Rounded r pq) -> Rounded -> Rounded -> Rounded
 binary' f a b = binary f R.TowardNearest (precision a `max` precision b) a b
 
-min_, max_, add_, sub_, mul_, div_, atan2_ :: RoundingMode -> Precision -> Rounded -> Rounded -> Rounded
-
-min_ = binary R.min_
-max_ = binary R.max_
-add_ = binary (R.!+!)
-sub_ = binary (R.!-!)
-mul_ = binary (R.!*!)
-div_ = binary (R.!/!)
+add_, agm_, atan2_, beta_, copysign_, dim_, div_, fmod_, gamma_inc_, hypot_, max_, min_, mul_, pow_, sub_
+  :: RoundingMode -> Precision -> Rounded -> Rounded -> Rounded
+add_ = binary R.add_
+agm_ = binary R.agm_
 atan2_ = binary R.atan2_
+beta_ = binary R.beta_
+copysign_ = binary R.copysign_
+dim_ = binary R.dim_
+div_ = binary R.div_
+fmod_ = binary R.fmod_
+gamma_inc_ = binary R.gamma_inc_
+hypot_ = binary R.hypot_
+max_ = binary R.max_
+min_ = binary R.min_
+mul_ = binary R.mul_
+pow_ = binary R.pow_
+sub_ = binary R.sub_
 
 unary' :: (forall r p . (R.Rounding r, R.Precision p) => R.Rounded r p -> a) -> RoundingMode -> Rounded -> a
 unary' f r a = R.reifyRounding r (\pr -> reifyRounded a (\ra -> g pr f ra))

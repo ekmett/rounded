@@ -2,7 +2,7 @@
 -- |
 -- Module      :  Numeric.Rounded
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
---                (C) 2013-2018 Claude Heiland-Allen
+--                (C) 2013-2019 Claude Heiland-Allen
 -- License     :  BSD3
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
@@ -42,43 +42,97 @@ module Numeric.Rounded
     , succUlp
     , predUlp
     -- * Mixed-precision operations
+    -- ** Unary
+    , abs_
+    , acos_
+    , acosh_
+    , ai_
+    , asin_
+    , asinh_
+    , atan_
+    , atanh_
+    , cbrt_
+    , cos_
+    , cosh_
+    , cot_
+    , coth_
+    , csc_
+    , csch_
+    , digamma_
+    , eint_
+    , erf_
+    , erfc_
+    , exp_
+    , exp10_
+    , exp2_
+    , expm1_
+    , frac_
+    , gamma_
+    , j0_
+    , j1_
+    , li2_
+    , lngamma_
+    , log_
+    , log10_
+    , log1p_
+    , log2_
+    , neg_
+    , rec_sqrt_
+    , rint_
+    , rint_ceil_
+    , rint_floor_
+    , rint_round_
+    , rint_roundeven_
+    , rint_trunc_
+    , sec_
+    , sech_
+    , set_
+    , sin_
+    , sinh_
+    , sqr_
+    , sqrt_
+    , tan_
+    , tanh_
+    , y0_
+    , y1_
+    , zeta_
+    -- ** Binary
+    , add_
+    , agm_
+    , atan2_
+    , beta_
+    , copysign_
+    , dim_
+    , div_
+    , fmod_
+    , gamma_inc_
+    , hypot_
+    , max_
+    , min_
+    , mul_
+    , pow_
+    , sub_
+    -- ** Dual output
+    , modf
+    , sin_cos
+    , sinh_cosh
+    -- ** Aliases
     , (!+!)
     , (!-!)
     , (!*!)
     , (!/!)
-    , abs_
+    , (!**!)
     , negate_
-    , compare_
+    , truncate_
+    , ceiling_
+    -- ** Comparisons
     , (!==!)
     , (!/=!)
     , (!>=!)
     , (!<=!)
     , (!>!)
     , (!<!)
-    , min_
-    , max_
-    , sqrt_
-    , exp_
-    , expm1_
-    , log_
-    , log1p_
-    , sin_
-    , cos_
-    , tan_
-    , asin_
-    , acos_
-    , atan_
-    , atan2_
-    , sinh_
-    , cosh_
-    , tanh_
-    , asinh_
-    , acosh_
-    , atanh_
-    , truncate_
-    , round_
-    , ceiling_
-    , floor_
+    , (!<>!)
     -- * Foreign Function Interface
     , withInRounded
     , withInOutRounded
