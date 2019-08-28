@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Rounded
@@ -100,18 +101,20 @@ module Numeric.Rounded
     , add_
     , agm_
     , atan2_
-    , beta_
     , copysign_
     , dim_
     , div_
     , fmod_
-    , gamma_inc_
     , hypot_
     , max_
     , min_
     , mul_
     , pow_
     , sub_
+#ifdef HAVE_MPFR_4_0
+    , beta_
+    , gamma_inc_
+#endif
     -- ** Dual output
     , modf
     , sin_cos
