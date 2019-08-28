@@ -39,9 +39,10 @@ source-repository this
   location: git://github.com/ekmett/rounded.git
   tag: rounded-0.2
 
-flag mpfr40
-  description: use features new in MPFR 4.0.x
-  default: True
+-- -- conditionally defined API is a bad thing
+--flag mpfr40
+--  description: use features new in MPFR 4.0.x
+--  default: True
 
 library
   exposed-modules:
@@ -70,9 +71,9 @@ library
 
   extra-libraries: mpfr gmp
 
-  if flag(mpfr40)
-    pkgconfig-depends: mpfr >= 4.0.0
-    cpp-options: -DHAVE_MPFR_4_0
+  --if flag(mpfr40)
+  --  pkgconfig-depends: mpfr >= 4.0.0
+  --  cpp-options: -DHAVE_MPFR_4_0
 
   hs-source-dirs:  src
   c-sources:       cbits/wrappers.c

@@ -2,7 +2,6 @@
 
 ## 0.2 -- 2019-08-28
 
-* Conditionally use features from MPFR 4.0 and later.
 * Wrapped a lot more of the MPFR API.
 * Fixed `wrapped_mpfr_set_ld()` FFI binding.  Previously `fromLongDouble`
   could corrupt memory or crash due to missing argument.
