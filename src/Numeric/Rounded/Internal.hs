@@ -12,7 +12,7 @@
 -- |
 -- Module      :  Numeric.Rounded.Internal
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
---                (C) 2013-2018 Claude Heiland-Allen
+--                (C) 2013-2019 Claude Heiland-Allen
 -- License     :  BSD3
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
@@ -326,7 +326,7 @@ fromLongDouble :: (Rounding r, Precision p) => LongDouble -> Rounded r p
 fromLongDouble d = r
   where
     r = unsafePerformIO $ do
-      (Just x, _) <- out_ $ \xfr -> with d $ \dp -> wrapped_mpfr_set_ld xfr dp (rnd r)
+      (Just x, _) <- out_ $ \xfr -> with d $ \dp -> with 0 $ \fp -> wrapped_mpfr_set_ld xfr dp (rnd r) fp
       return x
 -- TODO figure out correct syntax (if even possible) to allow RULE
 -- {-# RULES "realToFrac/fromLongDouble" realToFrac = fromLongDouble #-}

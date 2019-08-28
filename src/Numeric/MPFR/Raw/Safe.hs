@@ -3,7 +3,7 @@
 -- |
 -- Module      :  Numeric.MPFR.Raw.Unsafe
 -- Copyright   :  (C) 2012-2014 Edward Kmett, Daniel Peebles
---                (C) 2013-2017 Claude Heiland-Allen
+--                (C) 2013-2019 Claude Heiland-Allen
 -- License     :  BSD3
 -- Maintainer  :  Claude Heiland-Allen <claude@mathr.co.uk>
 -- Stability   :  experimental
@@ -112,5 +112,5 @@ foreign import ccall safe "mpfr_nextbelow" mpfr_nextbelow :: Ptr MPFR -> IO ()
 
 foreign import ccall safe "wrapped_mpfr_get_ld" wrapped_mpfr_get_ld :: Ptr LongDouble -> Ptr MPFR -> MPFRRnd -> Ptr CInt -> IO CInt
 foreign import ccall safe "wrapped_mpfr_get_ld_2exp" wrapped_mpfr_get_ld_2exp :: Ptr LongDouble -> Ptr CLong -> Ptr MPFR -> MPFRRnd -> Ptr CInt -> IO CInt
-foreign import ccall safe "wrapped_mpfr_set_ld" wrapped_mpfr_set_ld :: Ptr MPFR -> Ptr LongDouble -> MPFRRnd -> IO CInt
+foreign import ccall safe "wrapped_mpfr_set_ld" wrapped_mpfr_set_ld :: Ptr MPFR -> Ptr LongDouble -> MPFRRnd -> Ptr CInt -> IO CInt
 foreign import ccall safe "wrapped_mpfr_cmp_ld" wrapped_mpfr_cmp_ld :: Ptr MPFR -> Ptr LongDouble -> IO CInt
