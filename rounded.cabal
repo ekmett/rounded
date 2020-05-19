@@ -1,5 +1,5 @@
 name:               rounded
-version:            1.0
+version:            1.1
 synopsis:           Correctly-rounded arbitrary-precision floating-point arithmetic
 homepage:           https://github.com/ekmett/rounded
 bug-reports:        https://github.com/ekmett/rounded/issues
@@ -39,7 +39,7 @@ source-repository head
 source-repository this
   type: git
   location: git://github.com/ekmett/rounded.git
-  tag: rounded-1.0
+  tag: rounded-1.1
 
 library
   exposed-modules:

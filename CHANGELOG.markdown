@@ -1,5 +1,9 @@
 # Revision history for rounded
 
+## 1.1 -- 2020-05-19
+
+* Fixed `simplify` with `Nat` precisions by adding kind signatures.
+
 ## 1.0 -- 2019-08-28
 
 * Require MPFR 4.0 or above.
