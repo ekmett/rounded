@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 -----------------------------------------------------------------------------
 -- |
@@ -177,16 +178,16 @@ data Rounded = Rounded
 precision :: Rounded -> Precision
 precision = fromIntegral . roundedPrec
 
-reifyRounded :: Rounded -> (forall p . R.Precision p => R.Rounded r p -> a) -> a
+reifyRounded :: Rounded -> (forall k (p :: k) . R.Precision p => R.Rounded r p -> a) -> a
 reifyRounded (Rounded p s e l) f = R.reifyPrecision (fromIntegral p) (\q -> f (g q (R.Rounded p s e l)))
   where
     g :: R.Precision q => proxy q -> R.Rounded s q -> R.Rounded s q
     g _ x = x
 
-simplify :: R.Rounded r p -> Rounded
+simplify :: forall r k (p :: k) . R.Rounded r p -> Rounded
 simplify (R.Rounded p s e l) = Rounded p s e l
 
-constant :: (forall r p . (R.Rounding r, R.Precision p) => R.Rounded r p) -> RoundingMode -> Precision -> Rounded
+constant :: (forall r k (p :: k) . (R.Rounding r, R.Precision p) => R.Rounded r p) -> RoundingMode -> Precision -> Rounded
 constant f r q = R.reifyRounding r (\pr -> R.reifyPrecision q (\pq -> g pr pq f))
   where
     g :: (R.Rounding r, R.Precision p) => proxy1 r -> proxy2 p -> R.Rounded r p -> Rounded
@@ -199,7 +200,7 @@ kLog2 = constant R.kLog2
 kEuler = constant R.kEuler
 kCatalan = constant R.kCatalan
 
-unary :: (forall r p q . (R.Rounding r, R.Precision p, R.Precision q) => R.Rounded r p -> R.Rounded r q) -> RoundingMode -> Precision -> Rounded -> Rounded
+unary :: (forall r kp (p :: kp) kq (q :: kq) . (R.Rounding r, R.Precision p, R.Precision q) => R.Rounded r p -> R.Rounded r q) -> RoundingMode -> Precision -> Rounded -> Rounded
 unary f r q a = R.reifyRounding r (\pr -> R.reifyPrecision q (\pq -> reifyRounded a (\ra -> g pr pq f ra)))
   where
     g :: (R.Rounding r, R.Precision p, R.Precision q) => proxy1 r -> proxy2 q -> (R.Rounded r p -> R.Rounded r q) -> R.Rounded r p -> Rounded
@@ -278,19 +279,19 @@ fromInteger' = fromX fromInteger
 fromRational' :: RoundingMode -> Precision -> Rational -> Rounded
 fromRational' = fromX fromRational
 
-fromX :: (forall r p . (R.Rounding r, R.Precision p) => x -> R.Rounded r p) -> RoundingMode -> Precision -> x -> Rounded
+fromX :: (forall r k (p :: k) . (R.Rounding r, R.Precision p) => x -> R.Rounded r p) -> RoundingMode -> Precision -> x -> Rounded
 fromX f r p x = R.reifyRounding r (\pr -> R.reifyPrecision p (\pp -> g pr pp (f x)))
   where
     g :: (R.Rounding r, R.Precision p) => proxy1 r -> proxy2 p -> R.Rounded r p -> Rounded
-    g _ _ x = simplify x
+    g _ _ y = simplify y
 
-binary :: (forall r p q pq . (R.Rounding r, R.Precision p, R.Precision q, R.Precision pq) => R.Rounded r p -> R.Rounded r q -> R.Rounded r pq) -> RoundingMode -> Precision -> Rounded -> Rounded -> Rounded
+binary :: (forall r kp (p :: kp) kq (q :: kq) kpq (pq :: kpq) . (R.Rounding r, R.Precision p, R.Precision q, R.Precision pq) => R.Rounded r p -> R.Rounded r q -> R.Rounded r pq) -> RoundingMode -> Precision -> Rounded -> Rounded -> Rounded
 binary f r pq a b = R.reifyRounding r (\pr -> R.reifyPrecision pq (\ppq -> reifyRounded a (\ra -> reifyRounded b (\rb -> g pr ppq f ra rb))))
   where
     g :: (R.Rounding r, R.Precision p, R.Precision q, R.Precision pq) => proxy1 r -> proxy2 pq -> (R.Rounded r p -> R.Rounded r q -> R.Rounded r pq) -> R.Rounded r p -> R.Rounded r q -> Rounded
     g _ _ h x y = simplify (h x y)
 
-binary' :: (forall r p q pq . (R.Rounding r, R.Precision p, R.Precision q, R.Precision pq) => R.Rounded r p -> R.Rounded r q -> R.Rounded r pq) -> Rounded -> Rounded -> Rounded
+binary' :: (forall r kp (p :: kp) kq (q :: kq) kpq (pq :: kpq) . (R.Rounding r, R.Precision p, R.Precision q, R.Precision pq) => R.Rounded r p -> R.Rounded r q -> R.Rounded r pq) -> Rounded -> Rounded -> Rounded
 binary' f a b = binary f R.TowardNearest (precision a `max` precision b) a b
 
 add_, agm_, atan2_, copysign_, dim_, div_, fmod_, hypot_, max_, min_, mul_, pow_, sub_, beta_, gamma_inc_
@@ -311,13 +312,13 @@ sub_ = binary R.sub_
 beta_ = binary R.beta_
 gamma_inc_ = binary R.gamma_inc_
 
-unary' :: (forall r p . (R.Rounding r, R.Precision p) => R.Rounded r p -> a) -> RoundingMode -> Rounded -> a
+unary' :: (forall r k (p :: k) . (R.Rounding r, R.Precision p) => R.Rounded r p -> a) -> RoundingMode -> Rounded -> a
 unary' f r a = R.reifyRounding r (\pr -> reifyRounded a (\ra -> g pr f ra))
   where
     g :: (R.Rounding r, R.Precision p) => proxy r -> (R.Rounded r p -> a) -> R.Rounded r p -> a
     g _ h x = h x
 
-unary'' :: (forall r p . (R.Rounding r, R.Precision p) => R.Rounded r p -> a) -> Rounded -> a
+unary'' :: (forall r k (p :: k) . (R.Rounding r, R.Precision p) => R.Rounded r p -> a) -> Rounded -> a
 unary'' f a = unary' f R.TowardNearest a
 
 toDouble :: RoundingMode -> Rounded -> Double
@@ -394,7 +395,7 @@ floor_ = unary R.floor_ TowardNearest
 
 type Comparison = Rounded -> Rounded -> Bool
 
-cmp :: (forall p q . (R.Precision p, R.Precision q) => R.Rounded R.TowardNearest p -> R.Rounded R.TowardNearest q -> Bool) -> Comparison
+cmp :: (forall kp (p :: kp) kq (q :: kq) . (R.Precision p, R.Precision q) => R.Rounded R.TowardNearest p -> R.Rounded R.TowardNearest q -> Bool) -> Comparison
 cmp f a b = reifyRounded a (\ra -> reifyRounded b (\rb -> f ra rb))
 
 instance Eq Rounded where
