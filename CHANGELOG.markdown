@@ -1,5 +1,9 @@
 # Revision history for rounded
 
+## 0.3 -- 2020-05-19
+
+* Fixed `simplify` with `Nat` precisions by adding kind signatures.
+
 ## 0.2 -- 2019-08-28
 
 * Wrapped a lot more of the MPFR API.
