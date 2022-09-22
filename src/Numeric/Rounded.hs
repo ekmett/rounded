@@ -112,6 +112,9 @@ module Numeric.Rounded
     , sub_
     , beta_
     , gamma_inc_
+    -- ** Binary with Int argument
+    , jn_
+    , yn_
     -- ** Dual output
     , modf
     , sin_cos

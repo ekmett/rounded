@@ -123,6 +123,10 @@ foreign import ccall safe "mpfr_tanh" mpfr_tanh :: Unary
 foreign import ccall safe "mpfr_y0" mpfr_y0 :: Unary
 foreign import ccall safe "mpfr_y1" mpfr_y1 :: Unary
 foreign import ccall safe "mpfr_zeta" mpfr_zeta :: Unary
+foreign import ccall safe "mpfr_jn" mpfr_jn :: Ptr MPFR -> CLong -> Ptr MPFR -> MPFRRnd -> IO CInt
+foreign import ccall safe "mpfr_yn" mpfr_yn :: Ptr MPFR -> CLong -> Ptr MPFR -> MPFRRnd -> IO CInt
+-- TODO: mpfr_lgamma
+-- TODO: mpfr_zeta_ui
 
 type Unary' = Ptr MPFR -> Ptr MPFR -> IO CInt
 
@@ -154,6 +158,10 @@ type DualOutput = Ptr MPFR -> Ptr MPFR -> Ptr MPFR -> MPFRRnd -> IO CInt
 foreign import ccall safe "mpfr_modf" mpfr_modf :: DualOutput
 foreign import ccall safe "mpfr_sin_cos" mpfr_sin_cos :: DualOutput
 foreign import ccall safe "mpfr_sinh_cosh" mpfr_sinh_cosh :: DualOutput
+
+-- Special functions
+foreign import ccall safe "mpfr_gamma_inc" mpfr_gamma_inc :: Binary
+foreign import ccall safe "mpfr_beta"      mpfr_beta      :: Binary
 
 type Comparison = Ptr MPFR -> Ptr MPFR -> IO CInt
 
