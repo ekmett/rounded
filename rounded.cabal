@@ -30,7 +30,8 @@ description:
     .
     rounded version 1.x is for MPFR version 4.0 and above.
 
-extra-source-files: README.markdown CHANGELOG.markdown test.hs test.txt
+extra-doc-files: README.markdown CHANGELOG.markdown
+extra-source-files: test.hs test.txt
 
 source-repository head
   type: git
