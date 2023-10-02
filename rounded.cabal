@@ -67,7 +67,7 @@ library
   build-tools:     hsc2hs
 
   extra-libraries: mpfr gmp
-  pkgconfig-depends: mpfr >= 4.0.0
+  pkgconfig-depends: mpfr >= 4.0.0, gmp
 
   hs-source-dirs:  src
   c-sources:       cbits/wrappers.c
