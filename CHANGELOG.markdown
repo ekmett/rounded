@@ -1,5 +1,10 @@
 # Revision history for rounded
 
+## 1.1.1 -- 2023-10-02
+
+* Add `gmp` to `pkgconfig-depends`.  Fixes: <https://github.com/ekmett/rounded/issues/35>.
+* Bump dependency versions.  Fixes: <https://github.com/ekmett/rounded/issues/34>.
+
 ## 1.1 -- 2020-05-19
 
 * Fixed `simplify` with `Nat` precisions by adding kind signatures.
