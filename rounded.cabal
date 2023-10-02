@@ -57,8 +57,8 @@ library
     Numeric.Rounded.Precision
 
   build-depends:
-    base             >= 4.11    && < 4.16,
-    ghc-prim         >= 0.4     && < 0.8,
+    base             >= 4.11    && < 4.20,
+    ghc-prim         >= 0.4     && < 0.12,
     reflection       >= 2.1.2   && < 2.2,
     hgmp             >= 0.1.1   && < 0.2,
     long-double      >= 0.1     && < 0.2
