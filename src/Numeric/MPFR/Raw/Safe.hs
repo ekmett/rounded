@@ -159,10 +159,6 @@ foreign import ccall safe "mpfr_modf" mpfr_modf :: DualOutput
 foreign import ccall safe "mpfr_sin_cos" mpfr_sin_cos :: DualOutput
 foreign import ccall safe "mpfr_sinh_cosh" mpfr_sinh_cosh :: DualOutput
 
--- Special functions
-foreign import ccall safe "mpfr_gamma_inc" mpfr_gamma_inc :: Binary
-foreign import ccall safe "mpfr_beta"      mpfr_beta      :: Binary
-
 type Comparison = Ptr MPFR -> Ptr MPFR -> IO CInt
 
 foreign import ccall safe "mpfr_cmp" mpfr_cmp :: Comparison
