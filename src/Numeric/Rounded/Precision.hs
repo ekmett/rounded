@@ -29,6 +29,7 @@ import Data.Proxy
 import Data.Reflection
 import Foreign.C.Types
 import GHC.TypeLits
+import Data.Kind (Type)
 
 import Numeric.LongDouble (LongDouble)
 import Numeric.MPFR.Types
@@ -67,7 +68,7 @@ data Bytes (n :: Nat)
 instance KnownNat n => Precision (Bytes n) where
   precision _ = max MPFR_PREC_MIN . min MPFR_PREC_MAX $ 8 * fromInteger (natVal (undefined :: Bytes n))
 
-data ReifiedPrecision (s :: *)
+data ReifiedPrecision (s :: Type)
 
 retagReifiedPrecision :: (Proxy s -> a) -> proxy (ReifiedPrecision s) -> a
 retagReifiedPrecision f _ = f Proxy
@@ -76,8 +77,8 @@ retagReifiedPrecision f _ = f Proxy
 instance Reifies s Int => Precision (ReifiedPrecision s) where
   precision = retagReifiedPrecision reflect
 
-reifyPrecision :: Int -> (forall (p :: *). Precision p => Proxy p -> a) -> a
+reifyPrecision :: Int -> (forall (p :: Type). Precision p => Proxy p -> a) -> a
 reifyPrecision m f = reify m (go f) where
-  go :: Reifies p Int => (Proxy (ReifiedPrecision p) -> a) -> proxy p -> a
+  go :: (Proxy (ReifiedPrecision p) -> a) -> proxy p -> a
   go g _ = g Proxy
 {-# INLINE reifyPrecision #-}
