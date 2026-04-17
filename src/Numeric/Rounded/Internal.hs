@@ -29,7 +29,7 @@ import Data.Proxy (Proxy(..))
 import Data.Ratio ((%))
 
 import Foreign (with, alloca, allocaBytes, peek, sizeOf, nullPtr)
-import Foreign.C (CInt(..), CIntMax(..))
+import Foreign.C (CInt(..), CIntMax(..), CLong(..))
 import Foreign.C.String (peekCString)
 import Numeric.LongDouble (LongDouble)
 
@@ -272,6 +272,22 @@ gamma_inc_ = binary mpfr_gamma_inc
 infixl 6 !+!, !-!, `add_`, `sub_`
 infixl 7 !*!, !/!, `mul_`, `div_`
 infixr 8 !**!, `pow_`
+
+binaryLong
+  :: (Rounding r, Precision p2)
+  => (Ptr MPFR -> CLong -> Ptr MPFR -> MPFRRnd -> IO CInt)
+  -> Int
+  -> Rounded r p1
+  -> Rounded r p2
+binaryLong f n a = unsafePerformIO $ do
+  (Just c, _) <- in_ a $ \afr ->
+    out_ $ \cfr ->
+      f cfr (fromIntegral n) afr (rnd a)
+  return c
+
+jn_, yn_ :: (Rounding r, Precision p1, Precision p2) => Int -> Rounded r p1 -> Rounded r p2
+jn_ = binaryLong mpfr_jn
+yn_ = binaryLong mpfr_yn
 
 binary' :: Rounding r => Binary -> Rounded r p -> Rounded r p -> Rounded r p
 binary' f a b = unsafePerformIO $ do
