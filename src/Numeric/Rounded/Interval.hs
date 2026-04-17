@@ -8,14 +8,13 @@ module Numeric.Rounded.Interval where
 import Control.Applicative
 import Numeric.Rounded
 import Data.Coerce
-import Data.Typeable
 import GHC.Generics
 import Prelude hiding (elem, notElem)
 
 data Interval p
   = I (Rounded TowardNegInf p) (Rounded TowardInf p)
   | Empty
-  deriving (Typeable, Generic)
+  deriving (Generic)
 
 
 -- TODO: take from mpfr

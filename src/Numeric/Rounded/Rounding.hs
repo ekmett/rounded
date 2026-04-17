@@ -33,7 +33,7 @@ data RoundingMode
   | TowardNegInf  -- ^ roundTowardNegative in IEEE 754-2008
   | AwayFromZero  -- ^ round away from zero
   | Faithfully    -- ^ currently unsupported placeholder
-  deriving (Eq,Ord,Show,Read,Data,Typeable)
+  deriving (Eq,Ord,Show,Read,Data)
 
 class Rounding (r :: RoundingMode) where rounding :: Proxy r -> RoundingMode
 instance Rounding TowardNearest where rounding _ = TowardNearest
