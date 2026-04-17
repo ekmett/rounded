@@ -25,6 +25,7 @@ import Control.Exception (bracket, bracket_, throwIO, ArithException(Overflow))
 import Data.Bits (shiftL, testBit)
 import Data.Coerce (coerce)
 import Data.Int (Int32)
+import Data.Kind (Type)
 import Data.Proxy (Proxy(..))
 import Data.Ratio ((%))
 
@@ -635,12 +636,12 @@ withInOutRounded_ :: Precision p => Rounded r p -> (Ptr MPFR -> IO a) -> IO (May
 withInOutRounded_ x = fmap fst . withInOutRounded x
 
 -- | Peek an @mpfr_t@ at its actual precision, reified.
-peekRounded :: Rounding r => Ptr MPFR -> (forall (p :: *) . Precision p => Rounded r p -> IO a) -> IO a
+peekRounded :: Rounding r => Ptr MPFR -> (forall (p :: Type) . Precision p => Rounded r p -> IO a) -> IO a
 peekRounded ptr f = do
   MPFR{ mpfrPrec = p', mpfrSign = s', mpfrExp = e', mpfrD = d' } <- peek ptr
   asByteArray d' (precBytes p') $ \l' -> reifyPrecision (fromIntegral p') (wrap f (Rounded p' s' e' l'))
   where
-    wrap :: forall (p :: *) (r :: RoundingMode) (a :: *) . (Rounding r, Precision p) => (forall (q :: *) . Precision q => Rounded r q -> IO a) -> Rounded r p -> Proxy p -> IO a
+    wrap :: forall (p :: Type) (r :: RoundingMode) (a :: Type) . (Rounding r, Precision p) => (forall (q :: Type) . Precision q => Rounded r q -> IO a) -> Rounded r p -> Proxy p -> IO a
     wrap g r = \_proxy -> g r
 
 
