@@ -173,3 +173,8 @@ foreign import ccall safe "wrapped_mpfr_get_ld" wrapped_mpfr_get_ld :: Ptr LongD
 foreign import ccall safe "wrapped_mpfr_get_ld_2exp" wrapped_mpfr_get_ld_2exp :: Ptr LongDouble -> Ptr CLong -> Ptr MPFR -> MPFRRnd -> Ptr CInt -> IO CInt
 foreign import ccall safe "wrapped_mpfr_set_ld" wrapped_mpfr_set_ld :: Ptr MPFR -> Ptr LongDouble -> MPFRRnd -> Ptr CInt -> IO CInt
 foreign import ccall safe "wrapped_mpfr_cmp_ld" wrapped_mpfr_cmp_ld :: Ptr MPFR -> Ptr LongDouble -> IO CInt
+
+foreign import ccall safe "mpfr_jn" mpfr_jn :: Ptr MPFR -> CLong -> Ptr MPFR -> MPFRRnd -> IO CInt
+foreign import ccall safe "mpfr_yn" mpfr_yn :: Ptr MPFR -> CLong -> Ptr MPFR -> MPFRRnd -> IO CInt
+-- TODO: mpfr_lgamma
+-- TODO: mpfr_zeta_ui
