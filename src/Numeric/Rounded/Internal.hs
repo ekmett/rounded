@@ -24,7 +24,6 @@ module Numeric.Rounded.Internal where
 import Control.Exception (bracket, bracket_, throwIO, ArithException(Overflow))
 import Data.Bits (shiftL, testBit)
 import Data.Coerce (coerce)
-import Data.Int (Int32)
 import Data.Kind (Type)
 import Data.Proxy (Proxy(..))
 import Data.Ratio ((%))
@@ -113,7 +112,8 @@ toString x = unsafePerformIO $ do
                           "e" ++ show (e - 1)
       | e == 0         -> sign ++ "0." ++
                           dropTrailingZeroes digits
-      | e <  threshold -> sign ++ take e digits0 ++ "." ++
+      | otherwise -- e <  threshold
+                       -> sign ++ take e digits0 ++ "." ++
                           dropTrailingZeroes (take (n - e) (drop e digits0))
       where
         sgn' = sgn x

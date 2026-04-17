@@ -21,7 +21,6 @@
 module Numeric.MPFR.Types where
 
 import Data.Data
-import Data.Typeable
 import Data.Bits
 import Data.Ix
 import Data.Int

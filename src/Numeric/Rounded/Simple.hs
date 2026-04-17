@@ -154,7 +154,7 @@ module Numeric.Rounded.Simple
   ) where
 
 import Control.Exception (bracket_)
-import Foreign (Ptr(..), alloca)
+import Foreign (Ptr, alloca)
 import GHC.Prim ( ByteArray# )
 
 import Numeric.LongDouble (LongDouble)
